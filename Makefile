@@ -10,15 +10,13 @@ else
 HOST_PLATFORM = windows
 endif
 
-TARGET_PLATFORMS_macosx = macosx iphonesimulator iphoneos
+TARGET_PLATFORMS_macosx = macosx
 TARGET_PLATFORMS_linux = linux
 TARGET_PLATFORMS_windows = windows
 
 include version
 
-PROJECT_NAME = template_stemlib
-IPHONESIMULATOR_APPLICATIONS_DIR = ${HOME}/Library/Application Support/iPhone Simulator/User/Applications
-CODESIGN_IDENTITY = "iPhone Developer"
+PROJECT_NAME = gamepad
 SVNROOT = http://sacredsoftware.net/svn/misc
 
 LIBRARY_TARGETS = library
@@ -26,12 +24,12 @@ EXECUTABLE_TARGETS = unittest
 APPLICATION_TARGETS = testharness
 TARGETS = ${LIBRARY_TARGETS} ${EXECUTABLE_TARGETS} ${APPLICATION_TARGETS}
 CONFIGURATIONS = debug profile release
-PLATFORMS = ${filter ${TARGET_PLATFORMS_${HOST_PLATFORM}},macosx iphonesimulator iphoneos linux windows}
-ARCHS = ppc i386 i686 x86_64 armv6 armv7
+PLATFORMS = ${filter ${TARGET_PLATFORMS_${HOST_PLATFORM}},macosx linux windows}
+ARCHS = ppc i386 i686 x86_64
 
-TARGET_NAME_library = libstem_template
+TARGET_NAME_library = libstem_gamepad
 TARGET_NAME_unittest = unittest
-TARGET_NAME_testharness = testharness
+TARGET_NAME_testharness = GamepadTestHarness
 
 #Per-target configurations
 CONFIGURATIONS_library = debug profile release
@@ -39,9 +37,9 @@ CONFIGURATIONS_unittest = debug
 CONFIGURATIONS_testharness = debug profile
 
 #Per-target platforms
-PLATFORMS_library = ${filter ${PLATFORMS},macosx iphonesimulator iphoneos linux windows}
-PLATFORMS_unittest = ${filter ${PLATFORMS},macosx iphonesimulator linux windows}
-PLATFORMS_testharness = ${filter ${PLATFORMS},macosx iphonesimulator iphoneos linux windows}
+PLATFORMS_library = ${filter ${PLATFORMS},macosx linux windows}
+PLATFORMS_unittest = ${filter ${PLATFORMS},macosx linux windows}
+PLATFORMS_testharness = ${filter ${PLATFORMS},macosx linux windows}
 
 #Per-target compile/link settings
 CCFLAGS_unittest = -I test_source -DSUITE_FILE_LIST='${foreach file,${SOURCES_unittest_suites},"${basename ${notdir ${file}}}",} NULL'
@@ -60,24 +58,7 @@ RANLIB_macosx = /usr/bin/ranlib
 SDKROOT_macosx = /Developer/SDKs/MacOSX10.5.sdk
 ARCHS_macosx = ppc i386 x86_64
 CCFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5
-LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5
-
-CC_iphonesimulator_i386 = /Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin/gcc-4.2 -arch i386
-AR_iphonesimulator = /Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin/ar
-RANLIB_iphonesimulator = /Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin/ranlib
-SDKROOT_iphonesimulator = /Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator3.0.sdk
-ARCHS_iphonesimulator = i386
-CCFLAGS_iphonesimulator = -isysroot ${SDKROOT_iphonesimulator} -mmacosx-version-min=10.5 -D__IPHONE_OS_VERSION_MIN_REQUIRED=30000
-LINKFLAGS_iphonesimulator = -isysroot ${SDKROOT_iphonesimulator} -mmacosx-version-min=10.5
-
-CC_iphoneos_armv6 = /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv6
-CC_iphoneos_armv7 = /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv7
-AR_iphoneos = /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/ar
-RANLIB_iphoneos = /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/ranlib
-SDKROOT_iphoneos = /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.0.sdk
-ARCHS_iphoneos = armv6 armv7
-CCFLAGS_iphoneos = -isysroot ${SDKROOT_iphoneos} -miphoneos-version-min=3.0
-LINKFLAGS_iphoneos = -isysroot ${SDKROOT_iphoneos} -miphoneos-version-min=3.0
+LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5 -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT
 
 CC_linux_i686 = /usr/bin/gcc
 AR_linux = /usr/bin/ar
@@ -91,12 +72,12 @@ AR_windows = \\MinGW\\bin\\ar.exe
 RANLIB_windows = \\MinGW\\bin\\ranlib.exe
 ARCHS_windows = i686
 CCFLAGS_windows = 
-LINKFLAGS_windows = 
+LINKFLAGS_windows = -lwinmm
 
 #General compile/link settings
 DEFINE_CCFLAGS = -DVERSION_MAJOR=${VERSION_MAJOR}u -DVERSION_MINOR=${VERSION_MINOR}u -DVERSION_TWEAK=${VERSION_TWEAK}u
 WARNING_CCFLAGS = -Wall -Wextra -Wno-unused-parameter -Werror
-INCLUDE_CCFLAGS = -I source
+INCLUDE_CCFLAGS = -I source -I include
 OTHER_CCFLAGS = -std=gnu99
 CCFLAGS = ${DEFINE_CCFLAGS} ${WARNING_CCFLAGS} ${INCLUDE_CCFLAGS} ${OTHER_CCFLAGS}
 
@@ -108,12 +89,12 @@ LINKFLAGS = ${FRAMEWORK_LINKFLAGS} ${LIBRARY_LINKFLAGS} ${OTHER_LINKFLAGS}
 #Per-target depencies
 
 LIBRARY_DEPENDENCIES_unittest =
-LIBRARY_DEPENDENCIES_testharness =
+LIBRARY_DEPENDENCIES_testharness = utilities/libstem_utilities.a glutshell/libstemshell_glut.a
 
 #Per-target source file lists
 
 SOURCES_library = \
-	source/HelloWorld.c
+	source/gamepad/Gamepad_${HOST_PLATFORM}.c
 
 SOURCES_unittest = \
 	test_source/unittest/framework/unittest_main.c \
@@ -121,7 +102,7 @@ SOURCES_unittest = \
 	${SOURCES_unittest_suites}
 
 SOURCES_unittest_suites = \
-	test_source/unittest/suites/HelloWorldTest.c
+	test_source/unittest/suites/GamepadTest.c
 
 SOURCES_testharness = \
 	test_source/testharness/TestHarness_main.c
@@ -129,7 +110,7 @@ SOURCES_testharness = \
 SOURCES = ${sort ${foreach target,${TARGETS},${SOURCES_${target}}}}
 
 INCLUDES = \
-	source/HelloWorld.h
+	source/gamepad/Gamepad.h
 
 
 
@@ -316,16 +297,6 @@ ${foreach target,${EXECUTABLE_TARGETS}, \
 
 PLIST_FILE_testharness_macosx = test_resources/Info_testharness_macosx.plist
 
-PLIST_FILE_testharness_iphonesimulator = test_resources/Info_testharness_iphone.plist
-PLIST_PLATFORM_CASED_iphonesimulator = iPhoneSimulator
-PLIST_PLATFORM_LOWER_iphonesimulator = iphonesimulator
-PLIST_SDK_NAME_iphonesimulator = iphonesimulator3.0
-
-PLIST_FILE_testharness_iphoneos = test_resources/Info_testharness_iphone.plist
-PLIST_PLATFORM_CASED_iphoneos = iPhoneOS
-PLIST_PLATFORM_LOWER_iphoneos = iphoneos
-PLIST_SDK_NAME_iphoneos = iphoneos3.0
-
 define assemble_application_macosx #(target, configuration, platform)
 build/${1}/${2}-${3}/${TARGET_NAME_${1}}.app/Contents/MacOS/${TARGET_NAME_${1}}: ${THIN_BINARIES_${1}_${2}_${3}}
 	mkdir -p $${dir $$@}
@@ -426,11 +397,6 @@ test: unittest ${foreach platform,${PLATFORMS_unittest},run_unittests_${platform
 .PHONY: run_unittests_macosx
 run_unittests_macosx:
 	./build/unittest/debug-macosx/unittest
-
-.PHONY: run_unittests_iphonesimulator
-run_unittests_iphonesimulator:
-	DYLD_ROOT_PATH=${SDKROOT_iphonesimulator} \
-	./build/unittest/debug-iphonesimulator/unittest
 
 .PHONY: run_unittests_linux
 run_unittests_linux:
