@@ -110,10 +110,10 @@ void Target_draw() {
 			glVertex2f(48.0f, 15.0f);
 			glVertex2f(2.0f, 15.0f);
 			glColor3f(0.5f, 1.0f, 0.5f);
-			glVertex2f(3.0f + axisState * 42, 6.0f);
-			glVertex2f(5.0f + axisState * 42, 6.0f);
-			glVertex2f(5.0f + axisState * 42, 14.0f);
-			glVertex2f(3.0f + axisState * 42, 14.0f);
+			glVertex2f(24.0f + axisState * 21, 6.0f);
+			glVertex2f(26.0f + axisState * 21, 6.0f);
+			glVertex2f(26.0f + axisState * 21, 14.0f);
+			glVertex2f(24.0f + axisState * 21, 14.0f);
 			glEnd();
 			glTranslatef(50.0f, 0.0f, 0.0f);
 		}

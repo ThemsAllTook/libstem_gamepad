@@ -141,7 +141,6 @@ void Gamepad_detectDevices() {
 	char name[128];
 	char * description;
 	unsigned char axes, buttons;
-	unsigned int axisIndex;
 	
 	gamepadPaths = findGamepadPaths(&numPaths);
 	
@@ -189,10 +188,7 @@ void Gamepad_detectDevices() {
 			deviceRecord->numAxes = axes;
 			deviceRecord->numButtons = buttons;
 			
-			deviceRecord->axisStates = malloc(sizeof(float) * deviceRecord->numAxes);
-			for (axisIndex = 0; axisIndex < deviceRecord->numAxes; axisIndex++) {
-				deviceRecord->axisStates[axisIndex] = 0.5f;
-			}
+			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
 			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
 			
 			fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -221,7 +217,7 @@ void Gamepad_processEvents() {
 				axisEvent.device = device;
 				axisEvent.timestamp = event.time; // TODO: Normalize
 				axisEvent.axisID = event.number;
-				axisEvent.value = (event.value - SHRT_MIN) / (float) USHRT_MAX;
+				axisEvent.value = (event.value - SHRT_MIN) / (float) USHRT_MAX * 2.0f - 1.0f;
 				
 				device->axisStates[event.number] = axisEvent.value;
 				

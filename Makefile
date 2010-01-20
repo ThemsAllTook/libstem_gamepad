@@ -71,8 +71,8 @@ CC_windows_i686 = \\MinGW\\bin\\gcc.exe
 AR_windows = \\MinGW\\bin\\ar.exe
 RANLIB_windows = \\MinGW\\bin\\ranlib.exe
 ARCHS_windows = i686
-CCFLAGS_windows = 
-LINKFLAGS_windows = -lwinmm
+CCFLAGS_windows = -DFREEGLUT_STATIC
+LINKFLAGS_windows = -lfreeglut_static -lopengl32 -lglu32 -lwinmm -lgdi32 -mwindows
 
 #General compile/link settings
 DEFINE_CCFLAGS = -DVERSION_MAJOR=${VERSION_MAJOR}u -DVERSION_MINOR=${VERSION_MINOR}u -DVERSION_TWEAK=${VERSION_TWEAK}u
@@ -183,7 +183,7 @@ ${foreach target,${LIBRARY_TARGETS}, \
 
 define executable_template #(target, configuration, platform, arch, output_file, dependent_libraries)
 build/intermediate/${2}-${3}-${4}/${5}: ${call arch_object_list_template,${1},${2},${3},${4}} ${6}
-	${CC_${3}_${4}} ${LINKFLAGS} ${LINKFLAGS_${3}} -o $$@ $$^
+	${CC_${3}_${4}} -o $$@ $$^ ${LINKFLAGS} ${LINKFLAGS_${3}}
 endef
 
 define library_dependency_template #(target, configuration, platform)

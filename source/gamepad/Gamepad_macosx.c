@@ -96,7 +96,7 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 			axisEvent->device = deviceRecord;
 			axisEvent->timestamp = IOHIDValueGetTimeStamp(value) * timebaseInfo.numer / timebaseInfo.denom * 0.000000001;
 			axisEvent->axisID = axisIndex;
-			axisEvent->value = (integerValue - hidDeviceRecord->axisElements[axisIndex].logicalMin) / (float) (hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin);
+			axisEvent->value = (integerValue - hidDeviceRecord->axisElements[axisIndex].logicalMin) / (float) (hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin) * 2.0f - 1.0f;
 			
 			deviceRecord->axisStates[axisIndex] = axisEvent->value;
 			
@@ -151,7 +151,6 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	IOHIDElementType type;
 	char * description;
 	struct Gamepad_queuedEvent queuedEvent;
-	unsigned int axisIndex;
 	
 	deviceRecord = malloc(sizeof(struct Gamepad_device));
 	deviceRecord->deviceID = nextDeviceID++;
@@ -203,10 +202,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	}
 	CFRelease(elements);
 	
-	deviceRecord->axisStates = malloc(sizeof(float) * deviceRecord->numAxes);
-	for (axisIndex = 0; axisIndex < deviceRecord->numAxes; axisIndex++) {
-		deviceRecord->axisStates[axisIndex] = 0.5f;
-	}
+	deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
 	deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
 	
 	IOHIDDeviceRegisterInputValueCallback(device, onDeviceValueChanged, deviceRecord);
