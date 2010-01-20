@@ -89,7 +89,6 @@ void Target_draw() {
 	Gamepad_processEvents();
 	
 	glClear(GL_COLOR_BUFFER_BIT);
-	glLoadIdentity();
 	for (gamepadIndex = 0; gamepadIndex < Gamepad_numDevices(); gamepadIndex++) {
 		glLoadIdentity();
 		glTranslatef(5.0f, 20.0f + 60.0f * gamepadIndex, 0.0f);
@@ -137,6 +136,13 @@ void Target_draw() {
 			glEnd();
 			glTranslatef(20.0f, 0.0f, 0.0f);
 		}
+	}
+	
+	if (gamepadIndex == 0) {
+		glLoadIdentity();
+		glTranslatef(5.0f, 20.0f, 0.0f);
+		glColor3f(0.0f, 0.0f, 0.0f);
+		drawGlutString(0, 0, "No devices found; plug in a USB gamepad and it will be detected automatically");
 	}
 	
 	Shell_redisplay();
