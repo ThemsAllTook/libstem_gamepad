@@ -217,7 +217,7 @@ void Gamepad_processEvents() {
 				}
 				
 				axisEvent.device = device;
-				axisEvent.timestamp = event.time; // TODO: Normalize
+				axisEvent.timestamp = event.time * 0.001;
 				axisEvent.axisID = event.number;
 				axisEvent.value = (event.value - SHRT_MIN) / (float) USHRT_MAX * 2.0f - 1.0f;
 				
@@ -233,7 +233,7 @@ void Gamepad_processEvents() {
 				}
 				
 				buttonEvent.device = device;
-				buttonEvent.timestamp = event.time; // TODO: Normalize
+				buttonEvent.timestamp = event.time * 0.001;
 				buttonEvent.buttonID = event.number;
 				buttonEvent.down = event.value;
 				
