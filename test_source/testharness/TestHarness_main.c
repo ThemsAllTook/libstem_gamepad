@@ -55,9 +55,9 @@ const char * Target_getName() {
 static unsigned int windowWidth = 800, windowHeight = 600;
 
 void Target_init(int argc, char ** argv) {
-	Gamepad_init();
 	Gamepad_eventDispatcher()->registerForEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_ATTACHED, onDeviceAttached, NULL);
 	Gamepad_eventDispatcher()->registerForEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_REMOVED, onDeviceRemoved, NULL);
+	Gamepad_init();
 	
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	glMatrixMode(GL_PROJECTION);

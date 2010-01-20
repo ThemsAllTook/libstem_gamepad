@@ -192,6 +192,8 @@ void Gamepad_detectDevices() {
 			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
 			
 			fcntl(fd, F_SETFL, O_NONBLOCK);
+			
+			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_ATTACHED, deviceRecord);
 		}
 	}
 }
