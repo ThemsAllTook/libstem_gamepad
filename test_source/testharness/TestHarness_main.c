@@ -84,6 +84,7 @@ void Target_draw() {
 	unsigned int axisIndex;
 	unsigned int buttonIndex;
 	float axisState;
+	char indexString[16];
 	
 	Gamepad_detectDevices();
 	Gamepad_processEvents();
@@ -91,7 +92,7 @@ void Target_draw() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	for (gamepadIndex = 0; gamepadIndex < Gamepad_numDevices(); gamepadIndex++) {
 		glLoadIdentity();
-		glTranslatef(5.0f, 20.0f + 60.0f * gamepadIndex, 0.0f);
+		glTranslatef(5.0f, 20.0f + 110.0f * gamepadIndex, 0.0f);
 		
 		device = Gamepad_deviceAtIndex(gamepadIndex);
 		
@@ -102,39 +103,46 @@ void Target_draw() {
 		for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
 			axisState = device->axisStates[axisIndex];
 			
-			glBegin(GL_QUADS);
+			sprintf(indexString, "a%d", axisIndex);
 			glColor3f(0.0f, 0.0f, 0.0f);
+			drawGlutString(2, 28, indexString);
+			
+			glBegin(GL_QUADS);
 			glVertex2f(2.0f, 5.0f);
-			glVertex2f(48.0f, 5.0f);
-			glVertex2f(48.0f, 15.0f);
+			glVertex2f(58.0f, 5.0f);
+			glVertex2f(58.0f, 15.0f);
 			glVertex2f(2.0f, 15.0f);
 			glColor3f(0.5f, 1.0f, 0.5f);
-			glVertex2f(24.0f + axisState * 21, 6.0f);
-			glVertex2f(26.0f + axisState * 21, 6.0f);
-			glVertex2f(26.0f + axisState * 21, 14.0f);
-			glVertex2f(24.0f + axisState * 21, 14.0f);
+			glVertex2f(29.0f + axisState * 26, 6.0f);
+			glVertex2f(31.0f + axisState * 26, 6.0f);
+			glVertex2f(31.0f + axisState * 26, 14.0f);
+			glVertex2f(29.0f + axisState * 26, 14.0f);
 			glEnd();
-			glTranslatef(50.0f, 0.0f, 0.0f);
+			glTranslatef(60.0f, 0.0f, 0.0f);
 		}
 		glPopMatrix();
-		glTranslatef(0.0f, 20.0f, 0.0f);
+		glTranslatef(0.0f, 32.0f, 0.0f);
 		
 		for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
+			sprintf(indexString, "b%d", buttonIndex);
+			glColor3f(0.0f, 0.0f, 0.0f);
+			drawGlutString(2, 32, indexString);
+			
 			glBegin(GL_QUADS);
 			glColor3f(0.0f, 0.0f, 0.0f);
 			glVertex2f(2.0f, 2.0f);
-			glVertex2f(18.0f, 2.0f);
-			glVertex2f(18.0f, 18.0f);
+			glVertex2f(28.0f, 2.0f);
+			glVertex2f(28.0f, 18.0f);
 			glVertex2f(2.0f, 18.0f);
 			if (device->buttonStates[buttonIndex]) {
 				glColor3f(0.5f, 1.0f, 0.5f);
 				glVertex2f(3.0f, 3.0f);
-				glVertex2f(17.0f, 3.0f);
-				glVertex2f(17.0f, 17.0f);
+				glVertex2f(27.0f, 3.0f);
+				glVertex2f(27.0f, 17.0f);
 				glVertex2f(3.0f, 17.0f);
 			}
 			glEnd();
-			glTranslatef(20.0f, 0.0f, 0.0f);
+			glTranslatef(30.0f, 0.0f, 0.0f);
 		}
 	}
 	
