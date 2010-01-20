@@ -37,46 +37,88 @@
 // eventData -> struct Gamepad_axisEvent
 #define GAMEPAD_EVENT_AXIS_MOVED      "GAMEPAD_EVENT_AXIS_MOVED" // Only dispatched when Gamepad_processEvents is called
 
-// Axis ranges are normalized to [-1..1]
-
 struct Gamepad_buttonEvent {
+	// Device that generated the event
 	struct Gamepad_device * device;
+	
+	// Relative time of the event, in seconds. Does not necessarily correspond to values returned from Shell_getCurrentTime().
 	double timestamp;
+	
+	// Button being pushed or released
 	unsigned int buttonID;
+	
+	// True if button is down
 	bool down;
 };
 
 struct Gamepad_axisEvent {
+	// Device that generated the event
 	struct Gamepad_device * device;
+	
+	// Relative time of the event, in seconds. Does not necessarily correspond to values returned from Shell_getCurrentTime().
 	double timestamp;
+	
+	// Axis being moved
 	unsigned int axisID;
+	
+	// Axis position value, in the range [-1..1]
 	float value;
 };
 
 struct Gamepad_device {
+	// Unique device identifier for application session. If a device is removed and subsequently reattached during the same application session, it will have a new deviceID.
 	unsigned int deviceID;
+	
+	// Human-readable device name
 	const char * description;
+	
+	// Number of axis elements belonging to the device
 	unsigned int numAxes;
+	
+	// Number of button elements belonging to the device
 	unsigned int numButtons;
+	
+	// Array[numAxes] of values representing the current state of each axis, in the range [-1..1]
 	float * axisStates;
+	
+	// Array[numButtons] of values representing the current state of each button
 	bool * buttonStates;
 	
-	// Broadcasts GAMEPAD_EVENT_BUTTON_DOWN, GAMEPAD_EVENT_BUTTON_UP, GAMEPAD_EVENT_AXIS_MOVED
+	// Broadcasts GAMEPAD_EVENT_BUTTON_DOWN, GAMEPAD_EVENT_BUTTON_UP, and GAMEPAD_EVENT_AXIS_MOVED
 	EventDispatcher * eventDispatcher;
 	
+	// Platform-specific device data storage; don't mess with it
 	void * privateData;
 };
 
+/* Initializes gamepad library and detects initial devices. Call this before any other Gamepad_*()
+   function, EXCEPT Gamepad_eventDispatcher(). In order to get receive GAMEPAD_EVENT_DEVICE_ATTACHED
+   events from devices detected in Gamepad_init(), you must register handlers for those events before
+   calling Gamepad_init(). */
 void Gamepad_init();
+
+/* Tears down all data structures created by the gamepad library and releases any memory that was
+   allocated. It is not necessary to call this function at application termination. */
 void Gamepad_shutdown();
 
-// Broadcasts GAMEPAD_EVENT_DEVICE_ATTACHED, GAMEPAD_EVENT_DEVICE_REMOVED
+/* EventDispatcher used by gamepad library to broadcast GAMEPAD_EVENT_DEVICE_ATTACHED and
+   GAMEPAD_EVENT_DEVICE_REMOVED events. */
 EventDispatcher * Gamepad_eventDispatcher();
 
+/* Returns the number of currently attached gamepad devices. */
 unsigned int Gamepad_numDevices();
+
+/* Returns the specified Gamepad_device struct, or NULL if deviceIndex is out of bounds. */
 struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex);
 
+/* Polls for any devices that have been attached since the last call to Gamepad_detectDevices() or
+   Gamepad_init(). If any new devices are found, a GAMEPAD_EVENT_DEVICE_ATTACHED event will be
+   broadcast via Gamepad_eventDispatcher() for each one. */
 void Gamepad_detectDevices();
+
+/* Reads pending input from all attached devices and broadcasts GAMEPAD_EVENT_BUTTON_DOWN,
+   GAMEPAD_EVENT_BUTTON_UP, and GAMEPAD_EVENT_AXIS_MOVED events through the eventDispatcher of the
+   device that generated the event. */
 void Gamepad_processEvents();
 
 #endif
