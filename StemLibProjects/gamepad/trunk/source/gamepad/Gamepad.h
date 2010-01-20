@@ -37,6 +37,8 @@
 // eventData -> struct Gamepad_axisEvent
 #define GAMEPAD_EVENT_AXIS_MOVED      "GAMEPAD_EVENT_AXIS_MOVED" // Only dispatched when Gamepad_processEvents is called
 
+// Axis ranges are normalized to [-1..1]
+
 struct Gamepad_buttonEvent {
 	struct Gamepad_device * device;
 	double timestamp;
