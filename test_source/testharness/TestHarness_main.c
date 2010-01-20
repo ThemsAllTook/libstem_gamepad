@@ -17,6 +17,7 @@ bool onButtonDown(void * sender, const char * eventID, void * eventData, void * 
 	struct Gamepad_buttonEvent * event;
 	
 	event = eventData;
+	printf("Button %u down (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
 	return true;
 }
 
@@ -24,6 +25,7 @@ bool onButtonUp(void * sender, const char * eventID, void * eventData, void * co
 	struct Gamepad_buttonEvent * event;
 	
 	event = eventData;
+	printf("Button %u up (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
 	return true;
 }
 
@@ -31,6 +33,7 @@ bool onAxisMoved(void * sender, const char * eventID, void * eventData, void * c
 	struct Gamepad_axisEvent * event;
 	
 	event = eventData;
+	printf("Axis %u moved to %f on device %u at %f\n", event->axisID, event->value, event->device->deviceID, event->timestamp);
 	return true;
 }
 
@@ -38,6 +41,7 @@ bool onDeviceAttached(void * sender, const char * eventID, void * eventData, voi
 	struct Gamepad_device * device;
 	
 	device = eventData;
+	printf("Device ID %u attached\n", device->deviceID);
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_BUTTON_DOWN, onButtonDown, device);
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_BUTTON_UP, onButtonUp, device);
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, onAxisMoved, device);
@@ -45,6 +49,10 @@ bool onDeviceAttached(void * sender, const char * eventID, void * eventData, voi
 }
 
 bool onDeviceRemoved(void * sender, const char * eventID, void * eventData, void * context) {
+	struct Gamepad_device * device;
+	
+	device = eventData;
+	printf("Device ID %u removed\n", device->deviceID);
 	return true;
 }
 
