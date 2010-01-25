@@ -63,6 +63,8 @@ static struct Gamepad_queuedEvent * deviceEventQueue = NULL;
 static size_t deviceEventQueueSize = 0;
 static size_t deviceEventCount = 0;
 
+static EventDispatcher * eventDispatcher = NULL;
+
 static void hatValueToXY(CFIndex value, CFIndex range, int * outX, int * outY) {
 	if (value == range) {
 		*outX = *outY = 0;
@@ -427,12 +429,16 @@ void Gamepad_shutdown() {
 		}
 		free(devices);
 		numDevices = 0;
+		
+		if (eventDispatcher != NULL) {
+			eventDispatcher->dispose(eventDispatcher);
+			free(eventDispatcher);
+			eventDispatcher = NULL;
+		}
 	}
 }
 
 EventDispatcher * Gamepad_eventDispatcher() {
-	static EventDispatcher * eventDispatcher = NULL;
-	
 	if (eventDispatcher == NULL) {
 		eventDispatcher = EventDispatcher_create(NULL);
 	}
@@ -453,6 +459,10 @@ struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex) {
 void Gamepad_detectDevices() {
 	unsigned int eventIndex;
 	
+	if (!inited) {
+		return;
+	}
+	
 	for (eventIndex = 0; eventIndex < deviceEventCount; eventIndex++) {
 		deviceEventQueue[eventIndex].dispatcher->dispatchEvent(deviceEventQueue[eventIndex].dispatcher, deviceEventQueue[eventIndex].eventType, deviceEventQueue[eventIndex].eventData);
 	}
@@ -462,9 +472,14 @@ void Gamepad_detectDevices() {
 void Gamepad_processEvents() {
 	unsigned int eventIndex;
 	
+	if (!inited) {
+		return;
+	}
+	
 	for (eventIndex = 0; eventIndex < inputEventCount; eventIndex++) {
 		inputEventQueue[eventIndex].dispatcher->dispatchEvent(inputEventQueue[eventIndex].dispatcher, inputEventQueue[eventIndex].eventType, inputEventQueue[eventIndex].eventData);
 		free(inputEventQueue[eventIndex].eventData);
 	}
 	inputEventCount = 0;
 }
+

@@ -64,7 +64,7 @@ CC_linux_i686 = /usr/bin/gcc
 AR_linux = /usr/bin/ar
 RANLIB_linux = /usr/bin/ranlib
 ARCHS_linux = i686
-CCFLAGS_linux = 
+CCFLAGS_linux =
 LINKFLAGS_linux = -lm -ldl -lglut -Wl,-E
 
 CC_windows_i686 = \\MinGW\\bin\\gcc.exe
