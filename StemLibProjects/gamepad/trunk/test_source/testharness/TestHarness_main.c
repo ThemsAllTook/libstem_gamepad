@@ -116,8 +116,9 @@ static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) 
 void Target_draw() {
 	unsigned int gamepadIndex;
 	struct Gamepad_device * device;
-	unsigned int axisIndex;
-	unsigned int buttonIndex;
+	unsigned int axesPerRow, buttonsPerRow;
+	unsigned int axisRowIndex, axisIndex;
+	unsigned int buttonRowIndex, buttonIndex;
 	float axisState;
 	char indexString[16];
 	static unsigned int iterationsToNextPoll = POLL_ITERATION_INTERVAL;
@@ -130,62 +131,72 @@ void Target_draw() {
 	}
 	Gamepad_processEvents();
 	
+	axesPerRow = (windowWidth - 10) / 60;
+	buttonsPerRow = (windowWidth - 10) / 30;
+	
 	glClear(GL_COLOR_BUFFER_BIT);
+	glLoadIdentity();
+	glTranslatef(5.0f, 20.0f, 0.0f);
 	for (gamepadIndex = 0; gamepadIndex < Gamepad_numDevices(); gamepadIndex++) {
-		glLoadIdentity();
-		glTranslatef(5.0f, 20.0f + 110.0f * gamepadIndex, 0.0f);
-		
 		device = Gamepad_deviceAtIndex(gamepadIndex);
 		
 		glColor3f(0.0f, 0.0f, 0.0f);
 		snprintf(descriptionString, 256, "%s (0x%X 0x%X %u)", device->description, device->vendorID, device->productID, device->deviceID);
 		drawGlutString(0, 0, descriptionString);
 		
-		glPushMatrix();
-		for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
-			axisState = device->axisStates[axisIndex];
-			
-			sprintf(indexString, "a%d", axisIndex);
-			glColor3f(0.0f, 0.0f, 0.0f);
-			drawGlutString(2, 28, indexString);
-			
-			glBegin(GL_QUADS);
-			glVertex2f(2.0f, 5.0f);
-			glVertex2f(58.0f, 5.0f);
-			glVertex2f(58.0f, 15.0f);
-			glVertex2f(2.0f, 15.0f);
-			glColor3f(0.5f, 1.0f, 0.5f);
-			glVertex2f(29.0f + axisState * 26, 6.0f);
-			glVertex2f(31.0f + axisState * 26, 6.0f);
-			glVertex2f(31.0f + axisState * 26, 14.0f);
-			glVertex2f(29.0f + axisState * 26, 14.0f);
-			glEnd();
-			glTranslatef(60.0f, 0.0f, 0.0f);
-		}
-		glPopMatrix();
-		glTranslatef(0.0f, 32.0f, 0.0f);
-		
-		for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
-			sprintf(indexString, "b%d", buttonIndex);
-			glColor3f(0.0f, 0.0f, 0.0f);
-			drawGlutString(2, 32, indexString);
-			
-			glBegin(GL_QUADS);
-			glColor3f(0.0f, 0.0f, 0.0f);
-			glVertex2f(2.0f, 2.0f);
-			glVertex2f(28.0f, 2.0f);
-			glVertex2f(28.0f, 18.0f);
-			glVertex2f(2.0f, 18.0f);
-			if (device->buttonStates[buttonIndex]) {
+		for (axisRowIndex = 0; axisRowIndex <= device->numAxes / axesPerRow; axisRowIndex++) {
+			glPushMatrix();
+			for (axisIndex = axisRowIndex * axesPerRow; axisIndex < (axisRowIndex + 1) * axesPerRow && axisIndex < device->numAxes; axisIndex++) {
+				axisState = device->axisStates[axisIndex];
+				
+				sprintf(indexString, "a%d", axisIndex);
+				glColor3f(0.0f, 0.0f, 0.0f);
+				drawGlutString(2, 28, indexString);
+				
+				glBegin(GL_QUADS);
+				glVertex2f(2.0f, 5.0f);
+				glVertex2f(58.0f, 5.0f);
+				glVertex2f(58.0f, 15.0f);
+				glVertex2f(2.0f, 15.0f);
 				glColor3f(0.5f, 1.0f, 0.5f);
-				glVertex2f(3.0f, 3.0f);
-				glVertex2f(27.0f, 3.0f);
-				glVertex2f(27.0f, 17.0f);
-				glVertex2f(3.0f, 17.0f);
+				glVertex2f(29.0f + axisState * 26, 6.0f);
+				glVertex2f(31.0f + axisState * 26, 6.0f);
+				glVertex2f(31.0f + axisState * 26, 14.0f);
+				glVertex2f(29.0f + axisState * 26, 14.0f);
+				glEnd();
+				glTranslatef(60.0f, 0.0f, 0.0f);
 			}
-			glEnd();
-			glTranslatef(30.0f, 0.0f, 0.0f);
+			glPopMatrix();
+			glTranslatef(0.0f, 32.0f, 0.0f);
 		}
+		
+		for (buttonRowIndex = 0; buttonRowIndex <= device->numButtons / buttonsPerRow; buttonRowIndex++) {
+			glPushMatrix();
+			for (buttonIndex = buttonRowIndex * buttonsPerRow; buttonIndex < (buttonRowIndex + 1) * buttonsPerRow && buttonIndex < device->numButtons; buttonIndex++) {
+				sprintf(indexString, "b%d", buttonIndex);
+				glColor3f(0.0f, 0.0f, 0.0f);
+				drawGlutString(2, 32, indexString);
+				
+				glBegin(GL_QUADS);
+				glColor3f(0.0f, 0.0f, 0.0f);
+				glVertex2f(2.0f, 2.0f);
+				glVertex2f(28.0f, 2.0f);
+				glVertex2f(28.0f, 18.0f);
+				glVertex2f(2.0f, 18.0f);
+				if (device->buttonStates[buttonIndex]) {
+					glColor3f(0.5f, 1.0f, 0.5f);
+					glVertex2f(3.0f, 3.0f);
+					glVertex2f(27.0f, 3.0f);
+					glVertex2f(27.0f, 17.0f);
+					glVertex2f(3.0f, 17.0f);
+				}
+				glEnd();
+				glTranslatef(30.0f, 0.0f, 0.0f);
+			}
+			glPopMatrix();
+			glTranslatef(0.0f, 38.0f, 0.0f);
+		}
+		glTranslatef(0.0f, 40.0f, 0.0f);
 	}
 	
 	if (gamepadIndex == 0) {
