@@ -76,6 +76,7 @@ void Gamepad_shutdown() {
 			disposeDevice(devices[deviceIndex]);
 		}
 		free(devices);
+		devices = NULL;
 		numDevices = 0;
 		if (eventDispatcher != NULL) {
 			eventDispatcher->dispose(eventDispatcher);
@@ -192,6 +193,8 @@ void Gamepad_detectDevices() {
 			deviceRecord = malloc(sizeof(struct Gamepad_device));
 			deviceRecord->deviceID = nextDeviceID++;
 			deviceRecord->description = getDeviceDescription(joystickID, caps);
+			deviceRecord->vendorID = caps.wMid;
+			deviceRecord->productID = caps.wPid;
 			deviceRecord->numAxes = caps.wNumAxes + ((caps.wCaps & JOYCAPS_HASPOV) ? 2 : 0);
 			deviceRecord->numButtons = caps.wNumButtons;
 			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
