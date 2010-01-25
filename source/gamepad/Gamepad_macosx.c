@@ -30,6 +30,7 @@ struct HIDGamepadAxis {
 	IOHIDElementCookie cookie;
 	CFIndex logicalMin;
 	CFIndex logicalMax;
+	bool hasNullState;
 	bool isHatSwitch;
 	bool isHatSwitchSecondAxis;
 };
@@ -157,6 +158,15 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 			if (hidDeviceRecord->axisElements[axisIndex].isHatSwitch) {
 				int x, y;
 				
+				// Speculative fix for Saitek X52
+				if (!hidDeviceRecord->axisElements[axisIndex].hasNullState) {
+					if (integerValue == hidDeviceRecord->axisElements[axisIndex].logicalMin) {
+						integerValue = hidDeviceRecord->axisElements[axisIndex].logicalMax + 1;
+					} else {
+						integerValue--;
+					}
+				}
+				
 				hatValueToXY(integerValue - hidDeviceRecord->axisElements[axisIndex].logicalMin, hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin + 1, &x, &y);
 				
 				if (x != deviceRecord->axisStates[axisIndex]) {
@@ -217,6 +227,27 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 	}
 }
 
+static int IOHIDDeviceGetIntProperty(IOHIDDeviceRef deviceRef, CFStringRef key) {
+	CFTypeRef typeRef;
+	int value;
+	
+	typeRef = IOHIDDeviceGetProperty(deviceRef, key);
+	if (typeRef == NULL || CFGetTypeID(typeRef) != CFNumberGetTypeID()) {
+		return 0;
+	}
+	
+	CFNumberGetValue((CFNumberRef) typeRef, kCFNumberSInt32Type, &value);
+	return value;
+}
+
+static int IOHIDDeviceGetVendorID(IOHIDDeviceRef deviceRef) {
+	return IOHIDDeviceGetIntProperty(deviceRef, CFSTR(kIOHIDVendorIDKey));
+}
+
+static int IOHIDDeviceGetProductID(IOHIDDeviceRef deviceRef) {
+	return IOHIDDeviceGetIntProperty(deviceRef, CFSTR(kIOHIDProductIDKey));
+}
+
 static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHIDDeviceRef device) {
 	CFArrayRef elements;
 	CFIndex elementIndex;
@@ -230,6 +261,8 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	
 	deviceRecord = malloc(sizeof(struct Gamepad_device));
 	deviceRecord->deviceID = nextDeviceID++;
+	deviceRecord->vendorID = IOHIDDeviceGetVendorID(device);
+	deviceRecord->productID = IOHIDDeviceGetProductID(device);
 	deviceRecord->numAxes = 0;
 	deviceRecord->numButtons = 0;
 	deviceRecord->eventDispatcher = EventDispatcher_create(deviceRecord);
@@ -269,6 +302,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].cookie = IOHIDElementGetCookie(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].logicalMin = IOHIDElementGetLogicalMin(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].logicalMax = IOHIDElementGetLogicalMax(element);
+			hidDeviceRecord->axisElements[deviceRecord->numAxes].hasNullState = IOHIDElementHasNullState(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitch = IOHIDElementGetUsage(element) == kHIDUsage_GD_Hatswitch;
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitchSecondAxis = false;
 			deviceRecord->numAxes++;
@@ -428,6 +462,7 @@ void Gamepad_shutdown() {
 			disposeDevice(devices[deviceIndex]);
 		}
 		free(devices);
+		devices = NULL;
 		numDevices = 0;
 		
 		if (eventDispatcher != NULL) {
@@ -459,7 +494,7 @@ struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex) {
 void Gamepad_detectDevices() {
 	unsigned int eventIndex;
 	
-	if (!inited) {
+	if (hidManager == NULL) {
 		return;
 	}
 	
@@ -472,7 +507,7 @@ void Gamepad_detectDevices() {
 void Gamepad_processEvents() {
 	unsigned int eventIndex;
 	
-	if (!inited) {
+	if (hidManager == NULL) {
 		return;
 	}
 	
