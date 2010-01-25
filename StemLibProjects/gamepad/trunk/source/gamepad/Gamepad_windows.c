@@ -44,8 +44,14 @@ static struct Gamepad_device ** devices = NULL;
 static unsigned int numDevices = 0;
 static unsigned int nextDeviceID = 0;
 
+static EventDispatcher * eventDispatcher = NULL;
+static bool inited = false;
+
 void Gamepad_init() {
-	Gamepad_detectDevices();
+	if (!inited) {
+		inited = true;
+		Gamepad_detectDevices();
+	}
 }
 
 static void disposeDevice(struct Gamepad_device * deviceRecord) {
@@ -65,16 +71,22 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 void Gamepad_shutdown() {
 	unsigned int deviceIndex;
 	
-	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
-		disposeDevice(devices[deviceIndex]);
+	if (inited) {
+		for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
+			disposeDevice(devices[deviceIndex]);
+		}
+		free(devices);
+		numDevices = 0;
+		if (eventDispatcher != NULL) {
+			eventDispatcher->dispose(eventDispatcher);
+			free(eventDispatcher);
+			eventDispatcher = NULL;
+		}
+		inited = false;
 	}
-	free(devices);
-	numDevices = 0;
 }
 
 EventDispatcher * Gamepad_eventDispatcher() {
-	static EventDispatcher * eventDispatcher = NULL;
-	
 	if (eventDispatcher == NULL) {
 		eventDispatcher = EventDispatcher_create(NULL);
 	}
@@ -153,6 +165,10 @@ void Gamepad_detectDevices() {
 	struct Gamepad_devicePrivate * deviceRecordPrivate;
 	UINT joystickID;
 	int axisIndex;
+	
+	if (!inited) {
+		return;
+	}
 	
 	numPadsSupported = joyGetNumDevs();
 	for (deviceIndex = 0; deviceIndex < numPadsSupported; deviceIndex++) {
@@ -345,6 +361,10 @@ void Gamepad_processEvents() {
 	struct Gamepad_device * device;
 	struct Gamepad_devicePrivate * devicePrivate;
 	
+	if (!inited) {
+		return;
+	}
+	
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		device = devices[deviceIndex];
 		devicePrivate = device->privateData;
@@ -390,3 +410,4 @@ void Gamepad_processEvents() {
 		}
 	}
 }
+

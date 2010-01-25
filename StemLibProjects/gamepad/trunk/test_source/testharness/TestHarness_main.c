@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "gamepad/Gamepad.h"
 #include "shell/Shell.h"
+#include "shell/ShellKeyCodes.h"
 #include <string.h>
 
 #ifdef __APPLE__
@@ -13,11 +14,15 @@
 #include <GL/gl.h>
 #endif
 
+static bool verbose = false;
+
 bool onButtonDown(void * sender, const char * eventID, void * eventData, void * context) {
 	struct Gamepad_buttonEvent * event;
 	
 	event = eventData;
-	printf("Button %u down (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
+	if (verbose) {
+		printf("Button %u down (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
+	}
 	return true;
 }
 
@@ -25,7 +30,9 @@ bool onButtonUp(void * sender, const char * eventID, void * eventData, void * co
 	struct Gamepad_buttonEvent * event;
 	
 	event = eventData;
-	printf("Button %u up (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
+	if (verbose) {
+		printf("Button %u up (%d) on device %u at %f\n", event->buttonID, (int) event->down, event->device->deviceID, event->timestamp);
+	}
 	return true;
 }
 
@@ -33,7 +40,9 @@ bool onAxisMoved(void * sender, const char * eventID, void * eventData, void * c
 	struct Gamepad_axisEvent * event;
 	
 	event = eventData;
-	printf("Axis %u moved to %f on device %u at %f\n", event->axisID, event->value, event->device->deviceID, event->timestamp);
+	if (verbose) {
+		printf("Axis %u moved to %f on device %u at %f\n", event->axisID, event->value, event->device->deviceID, event->timestamp);
+	}
 	return true;
 }
 
@@ -41,7 +50,9 @@ bool onDeviceAttached(void * sender, const char * eventID, void * eventData, voi
 	struct Gamepad_device * device;
 	
 	device = eventData;
-	printf("Device ID %u attached\n", device->deviceID);
+	if (verbose) {
+		printf("Device ID %u attached (vendor = 0x%X; product = 0x%X)\n", device->deviceID, device->vendorID, device->productID);
+	}
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_BUTTON_DOWN, onButtonDown, device);
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_BUTTON_UP, onButtonUp, device);
 	device->eventDispatcher->registerForEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, onAxisMoved, device);
@@ -52,7 +63,9 @@ bool onDeviceRemoved(void * sender, const char * eventID, void * eventData, void
 	struct Gamepad_device * device;
 	
 	device = eventData;
-	printf("Device ID %u removed\n", device->deviceID);
+	if (verbose) {
+		printf("Device ID %u removed\n", device->deviceID);
+	}
 	return true;
 }
 
@@ -62,10 +75,22 @@ const char * Target_getName() {
 
 static unsigned int windowWidth = 800, windowHeight = 600;
 
-void Target_init(int argc, char ** argv) {
+static void initGamepad() {
 	Gamepad_eventDispatcher()->registerForEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_ATTACHED, onDeviceAttached, NULL);
 	Gamepad_eventDispatcher()->registerForEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_REMOVED, onDeviceRemoved, NULL);
 	Gamepad_init();
+}
+
+void Target_init(int argc, char ** argv) {
+	int	argIndex;
+	
+	for (argIndex = 1; argIndex < argc; argIndex++) {
+		if (!strcmp(argv[argIndex], "-v")) {
+			verbose = true;
+		}
+	}
+	
+	initGamepad();
 	
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	glMatrixMode(GL_PROJECTION);
@@ -86,6 +111,8 @@ static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) 
 	}
 }
 
+#define POLL_ITERATION_INTERVAL 30
+
 void Target_draw() {
 	unsigned int gamepadIndex;
 	struct Gamepad_device * device;
@@ -93,8 +120,14 @@ void Target_draw() {
 	unsigned int buttonIndex;
 	float axisState;
 	char indexString[16];
+	static unsigned int iterationsToNextPoll = POLL_ITERATION_INTERVAL;
+	char descriptionString[256];
 	
-	Gamepad_detectDevices();
+	iterationsToNextPoll--;
+	if (iterationsToNextPoll == 0) {
+		Gamepad_detectDevices();
+		iterationsToNextPoll = POLL_ITERATION_INTERVAL;
+	}
 	Gamepad_processEvents();
 	
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -105,7 +138,8 @@ void Target_draw() {
 		device = Gamepad_deviceAtIndex(gamepadIndex);
 		
 		glColor3f(0.0f, 0.0f, 0.0f);
-		drawGlutString(0, 0, device->description);
+		snprintf(descriptionString, 256, "%s (0x%X 0x%X %u)", device->description, device->vendorID, device->productID, device->deviceID);
+		drawGlutString(0, 0, descriptionString);
 		
 		glPushMatrix();
 		for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
@@ -165,6 +199,10 @@ void Target_draw() {
 }
 
 void Target_keyDown(int charCode, int keyCode) {
+	if (keyCode == KEYBOARD_R) {
+		Gamepad_shutdown();
+		initGamepad();
+	}
 }
 
 void Target_keyUp(int charCode, int keyCode) {

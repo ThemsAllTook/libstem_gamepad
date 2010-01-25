@@ -72,6 +72,10 @@ struct Gamepad_device {
 	// Human-readable device name
 	const char * description;
 	
+	// USB vendor/product IDs as returned by the driver. Can be used to determine the particular model of device represented.
+	int vendorID;
+	int productID;
+	
 	// Number of axis elements belonging to the device
 	unsigned int numAxes;
 	
