@@ -153,6 +153,10 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 		    hidDeviceRecord->axisElements[axisIndex].cookie == cookie) {
 			CFIndex integerValue;
 			
+			if (IOHIDValueGetLength(value) > 4) {
+				// Workaround for a strange crash that occurs with PS3 controller; was getting lengths of 39 (!)
+				continue;
+			}
 			integerValue = IOHIDValueGetIntegerValue(value);
 			
 			if (hidDeviceRecord->axisElements[axisIndex].isHatSwitch) {
