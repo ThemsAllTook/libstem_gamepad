@@ -162,16 +162,17 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 			if (hidDeviceRecord->axisElements[axisIndex].isHatSwitch) {
 				int x, y;
 				
-				// Speculative fix for Saitek X52
+				// Fix for Saitek X52
+				hidDeviceRecord->axisElements[axisIndex].hasNullState = false;
 				if (!hidDeviceRecord->axisElements[axisIndex].hasNullState) {
-					if (integerValue == hidDeviceRecord->axisElements[axisIndex].logicalMin) {
-						integerValue = hidDeviceRecord->axisElements[axisIndex].logicalMax + 1;
+					if (integerValue < hidDeviceRecord->axisElements[axisIndex].logicalMin) {
+						integerValue = hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin + 1;
 					} else {
 						integerValue--;
 					}
 				}
 				
-				hatValueToXY(integerValue - hidDeviceRecord->axisElements[axisIndex].logicalMin, hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin + 1, &x, &y);
+				hatValueToXY(integerValue, hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin + 1, &x, &y);
 				
 				if (x != deviceRecord->axisStates[axisIndex]) {
 					queueAxisEvent(deviceRecord,
@@ -306,7 +307,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].cookie = IOHIDElementGetCookie(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].logicalMin = IOHIDElementGetLogicalMin(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].logicalMax = IOHIDElementGetLogicalMax(element);
-			hidDeviceRecord->axisElements[deviceRecord->numAxes].hasNullState = IOHIDElementHasNullState(element);
+			hidDeviceRecord->axisElements[deviceRecord->numAxes].hasNullState = !!IOHIDElementHasNullState(element);
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitch = IOHIDElementGetUsage(element) == kHIDUsage_GD_Hatswitch;
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitchSecondAxis = false;
 			deviceRecord->numAxes++;
