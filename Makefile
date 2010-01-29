@@ -17,7 +17,7 @@ TARGET_PLATFORMS_windows = windows
 include version
 
 PROJECT_NAME = gamepad
-SVNROOT = http://sacredsoftware.net/svn/misc
+SVNROOT = http://sacredsoftware.net/svn/misc #master_source_only
 
 LIBRARY_TARGETS = library
 EXECUTABLE_TARGETS = unittest
@@ -94,7 +94,8 @@ LIBRARY_DEPENDENCIES_testharness = utilities/libstem_utilities.a glutshell/libst
 #Per-target source file lists
 
 SOURCES_library = \
-	source/gamepad/Gamepad_${HOST_PLATFORM}.c
+	source/gamepad/Gamepad_${HOST_PLATFORM}.c #source_dist_only\
+#source_dist_only	source/utilities/EventDispatcher.c
 
 SOURCES_unittest = \
 	test_source/unittest/framework/unittest_main.c \
@@ -110,7 +111,8 @@ SOURCES_testharness = \
 SOURCES = ${sort ${foreach target,${TARGETS},${SOURCES_${target}}}}
 
 INCLUDES = \
-	source/gamepad/Gamepad.h
+	source/gamepad/Gamepad.h #source_dist_only\
+#source_dist_only	source/utilities/EventDispatcher.h
 
 
 
@@ -411,6 +413,12 @@ include: ${INCLUDES}
 	mkdir -p build/include
 	cp $^ build/include
 
+.PHONY: clean
+clean:
+	rm -rf build
+	rm -rf dist
+	rm -rf dist_append
+#master_source_only_begin
 .PHONY: full_dist
 full_dist: clean all
 	mkdir dist dist/include dist/library dist/testharness
@@ -427,8 +435,35 @@ append_dist: clean all
 	svn add --no-ignore dist_append/library/* dist_append/testharness/*
 	svn commit -m "Automated release append from ${HOST_PLATFORM}" dist_append
 
-.PHONY: clean
-clean:
-	rm -rf build
-	rm -rf dist
-	rm -rf dist_append
+define filter_source_dist_file #(infile, outfile)
+	sed -n '1h;1!H;$${;g;s/#master_source_only_begin.*#master_source_only_end//g;p;}' ${1} | sed -e "s/#source_dist_only//g" | grep -v "#master_source_only" > ${2}
+endef
+
+.PHONY: source_dist
+source_dist:
+	mkdir -p build/source_dist/include/shell
+	mkdir -p build/source_dist/lib
+	mkdir -p build/source_dist/source/gamepad
+	mkdir -p build/source_dist/source/utilities
+	mkdir -p build/source_dist/test_resources
+	mkdir -p build/source_dist/test_source/testharness
+	mkdir -p build/source_dist/test_source/unittest/framework
+	mkdir -p build/source_dist/test_source/unittest/suites
+	
+	${call filter_source_dist_file,Makefile,build/source_dist/Makefile}
+	cp License.txt version build/source_dist
+	
+	cp include/shell/* build/source_dist/include/shell
+	
+	cp -r lib/* build/source_dist/lib
+	find build/source_dist/lib -name .svn -print0 | xargs -0 rm -rf
+	
+	cp source/gamepad/* build/source_dist/source/gamepad
+	cp dep_source/utilities/EventDispatcher.* build/source_dist/source/utilities
+	
+	cp test_resources/* build/source_dist/test_resources
+	
+	cp test_source/testharness/* build/source_dist/test_source/testharness
+	cp test_source/unittest/framework/* build/source_dist/test_source/unittest/framework
+	cp test_source/unittest/suites/* build/source_dist/test_source/unittest/suites
+#master_source_only_end

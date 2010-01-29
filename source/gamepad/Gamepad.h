@@ -41,7 +41,7 @@ struct Gamepad_buttonEvent {
 	// Device that generated the event
 	struct Gamepad_device * device;
 	
-	// Relative time of the event, in seconds. Does not necessarily correspond to values returned from Shell_getCurrentTime().
+	// Relative time of the event, in seconds
 	double timestamp;
 	
 	// Button being pushed or released
@@ -55,7 +55,7 @@ struct Gamepad_axisEvent {
 	// Device that generated the event
 	struct Gamepad_device * device;
 	
-	// Relative time of the event, in seconds. Does not necessarily correspond to values returned from Shell_getCurrentTime().
+	// Relative time of the event, in seconds
 	double timestamp;
 	
 	// Axis being moved
