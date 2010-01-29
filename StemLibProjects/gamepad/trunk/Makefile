@@ -456,7 +456,9 @@ source_dist:
 	cp include/shell/* build/source_dist/include/shell
 	
 	cp -r lib/* build/source_dist/lib
+ifneq (${HOST_PLATFORM},windows)
 	find build/source_dist/lib -name .svn -print0 | xargs -0 rm -rf
+endif
 	
 	cp source/gamepad/* build/source_dist/source/gamepad
 	cp dep_source/utilities/EventDispatcher.* build/source_dist/source/utilities
