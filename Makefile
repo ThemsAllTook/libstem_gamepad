@@ -17,8 +17,9 @@ TARGET_PLATFORMS_windows = windows
 include version
 
 PROJECT_NAME = gamepad
-SVNROOT = http://sacredsoftware.net/svn/misc #master_source_only
-
+#master_source_only_begin
+SVNROOT = http://sacredsoftware.net/svn/misc
+#master_source_only_end
 LIBRARY_TARGETS = library
 EXECUTABLE_TARGETS = unittest
 APPLICATION_TARGETS = testharness
