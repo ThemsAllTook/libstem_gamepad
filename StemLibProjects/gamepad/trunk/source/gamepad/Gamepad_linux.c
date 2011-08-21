@@ -117,8 +117,11 @@ static char ** findGamepadPaths(unsigned int * outNumGamepads) {
 
 void Gamepad_init() {
 	if (!inited) {
-		pthread_mutex_init(&devicesMutex, NULL);
-		pthread_mutex_init(&eventQueueMutex, NULL);
+		pthread_mutexattr_t recursiveLock;
+		pthread_mutexattr_init(&recursiveLock);
+		pthread_mutexattr_settype(&recursiveLock, PTHREAD_MUTEX_RECURSIVE);
+		pthread_mutex_init(&devicesMutex, &recursiveLock);
+		pthread_mutex_init(&eventQueueMutex, &recursiveLock);
 		inited = true;
 		Gamepad_detectDevices();
 	}
@@ -134,7 +137,6 @@ static void disposeDevice(struct Gamepad_device * device) {
 	free((void *) device->description);
 	free(device->axisStates);
 	free(device->buttonStates);
-	free(device->eventDispatcher);
 	
 	free(device);
 }
@@ -181,7 +183,6 @@ void Gamepad_shutdown() {
 		
 		if (eventDispatcher != NULL) {
 			eventDispatcher->dispose(eventDispatcher);
-			free(eventDispatcher);
 			eventDispatcher = NULL;
 		}
 		
@@ -370,10 +371,10 @@ void Gamepad_detectDevices() {
 			deviceRecord->privateData = deviceRecordPrivate;
 			
 			if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) > 0) {
-				description = malloc(strlen(name + 1));
+				description = malloc(strlen(name) + 1);
 				strcpy(description, name);
 			} else {
-				description = malloc(strlen(gamepadPaths[pathIndex] + 1));
+				description = malloc(strlen(gamepadPaths[pathIndex]) + 1);
 				strcpy(description, gamepadPaths[pathIndex]);
 			}
 			deviceRecord->description = description;
