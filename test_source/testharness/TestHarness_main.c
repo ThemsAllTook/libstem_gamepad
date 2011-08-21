@@ -1,9 +1,11 @@
+#include "gamepad/Gamepad.h"
+#include "glutshell/GLUTTarget.h"
+#include "shell/Shell.h"
+#include "shell/ShellKeyCodes.h"
+#include "shell/Target.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "gamepad/Gamepad.h"
-#include "shell/Shell.h"
-#include "shell/ShellKeyCodes.h"
 #include <string.h>
 
 #ifdef __APPLE__
@@ -69,10 +71,6 @@ bool onDeviceRemoved(void * sender, const char * eventID, void * eventData, void
 	return true;
 }
 
-const char * Target_getName() {
-	return "Gamepad test harness";
-}
-
 static unsigned int windowWidth = 800, windowHeight = 600;
 
 static void initGamepad() {
@@ -81,15 +79,7 @@ static void initGamepad() {
 	Gamepad_init();
 }
 
-void Target_init(int argc, char ** argv) {
-	int	argIndex;
-	
-	for (argIndex = 1; argIndex < argc; argIndex++) {
-		if (!strcmp(argv[argIndex], "-v")) {
-			verbose = true;
-		}
-	}
-	
+void Target_init() {
 	initGamepad();
 	
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
@@ -209,29 +199,32 @@ void Target_draw() {
 	Shell_redisplay();
 }
 
-void Target_keyDown(int charCode, int keyCode) {
+void Target_keyDown(unsigned int charCode, unsigned int keyCode, unsigned int keyModifiers) {
 	if (keyCode == KEYBOARD_R) {
 		Gamepad_shutdown();
 		initGamepad();
 	}
 }
 
-void Target_keyUp(int charCode, int keyCode) {
+void Target_keyUp(unsigned int charCode, unsigned int keyCode, unsigned int keyModifiers) {
 }
 
-void Target_mouseDown(int buttonNumber, float x, float y) {
+void Target_keyModifiersChanged(unsigned int keyModifiers) {
 }
 
-void Target_mouseUp(int buttonNumber, float x, float y) {
+void Target_mouseDown(unsigned int buttonNumber, float x, float y) {
+}
+
+void Target_mouseUp(unsigned int buttonNumber, float x, float y) {
 }
 
 void Target_mouseMoved(float x, float y) {
 }
 
-void Target_mouseDragged(int buttonMask, float x, float y) {
+void Target_mouseDragged(unsigned int buttonMask, float x, float y) {
 }
 
-void Target_resized(int newWidth, int newHeight) {
+void Target_resized(unsigned int newWidth, unsigned int newHeight) {
 	windowWidth = newWidth;
 	windowHeight = newHeight;
 	glViewport(0, 0, newWidth, newHeight);
@@ -239,4 +232,15 @@ void Target_resized(int newWidth, int newHeight) {
 	glLoadIdentity();
 	glOrtho(0.0f, windowWidth, windowHeight, 0.0f, -1.0f, 1.0f);
 	glMatrixMode(GL_MODELVIEW);
+}
+
+void GLUTTarget_configure(int argc, const char ** argv, struct GLUTShellConfiguration * configuration) {
+	int	argIndex;
+	
+	for (argIndex = 1; argIndex < argc; argIndex++) {
+		if (!strcmp(argv[argIndex], "-v")) {
+			verbose = true;
+		}
+	}
+	configuration->windowTitle = "Gamepad Test Harness";
 }

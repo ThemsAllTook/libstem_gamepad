@@ -163,7 +163,6 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 				int x, y;
 				
 				// Fix for Saitek X52
-				hidDeviceRecord->axisElements[axisIndex].hasNullState = false;
 				if (!hidDeviceRecord->axisElements[axisIndex].hasNullState) {
 					if (integerValue < hidDeviceRecord->axisElements[axisIndex].logicalMin) {
 						integerValue = hidDeviceRecord->axisElements[axisIndex].logicalMax - hidDeviceRecord->axisElements[axisIndex].logicalMin + 1;
@@ -286,11 +285,12 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 		strcpy(description, "[Unknown]");
 		
 	} else {
-		const char * cStringPtr;
+		CFIndex length;
 		
-		cStringPtr = CFStringGetCStringPtr(cfProductName, CFStringGetSmallestEncoding(cfProductName));
-		description = malloc(strlen(cStringPtr + 1));
-		strcpy(description, cStringPtr);
+		CFStringGetBytes(cfProductName, CFRangeMake(0, CFStringGetLength(cfProductName)), kCFStringEncodingUTF8, '?', false, NULL, 100, &length);
+		description = malloc(length + 1);
+		CFStringGetBytes(cfProductName, CFRangeMake(0, CFStringGetLength(cfProductName)), kCFStringEncodingUTF8, '?', false, (UInt8 *) description, length + 1, NULL);
+		description[length] = '\x00';
 	}
 	deviceRecord->description = description;
 	
@@ -381,7 +381,6 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 	free((void *) deviceRecord->description);
 	free(deviceRecord->axisStates);
 	free(deviceRecord->buttonStates);
-	free(deviceRecord->eventDispatcher);
 	
 	free(deviceRecord);
 }
@@ -472,7 +471,6 @@ void Gamepad_shutdown() {
 		
 		if (eventDispatcher != NULL) {
 			eventDispatcher->dispose(eventDispatcher);
-			free(eventDispatcher);
 			eventDispatcher = NULL;
 		}
 	}

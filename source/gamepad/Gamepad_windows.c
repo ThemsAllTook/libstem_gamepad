@@ -63,7 +63,6 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 	free((void *) deviceRecord->description);
 	free(deviceRecord->axisStates);
 	free(deviceRecord->buttonStates);
-	free(deviceRecord->eventDispatcher);
 	
 	free(deviceRecord);
 }
@@ -80,7 +79,6 @@ void Gamepad_shutdown() {
 		numDevices = 0;
 		if (eventDispatcher != NULL) {
 			eventDispatcher->dispose(eventDispatcher);
-			free(eventDispatcher);
 			eventDispatcher = NULL;
 		}
 		inited = false;
