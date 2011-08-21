@@ -55,6 +55,7 @@ PLATFORMS_testharness = ${filter ${PLATFORMS},macosx linux windows}
 
 #Per-target compile/link settings
 CCFLAGS_unittest = -I test_source -include build/intermediate/TestList.h
+CCFLAGS_testharness = -DGLEW_STATIC
 
 #Per-target analyzer settings
 CLANGFLAGS_unittest = ${CCFLAGS_unittest}
@@ -85,7 +86,7 @@ SPLINT_linux = /usr/local/bin/splint
 CLANG_linux = /usr/local/bin/clang
 ARCHS_linux = i686
 CCFLAGS_linux = 
-LINKFLAGS_linux = -lm -ldl -lglut -Wl,-E
+LINKFLAGS_linux = -lm -ldl -lglut -lGLU -Wl,-E
 
 CC_windows_i686 = C:/MinGW/bin/gcc.exe
 AR_windows = C:/MinGW/bin/ar.exe
@@ -136,7 +137,8 @@ STEM_SOURCE_DEPENDENCIES_unittest =
 STEM_SOURCE_DEPENDENCIES_testharness = 
 THIRDPARTY_LIBRARY_DEPENDENCIES_library = 
 THIRDPARTY_LIBRARY_DEPENDENCIES_unittest = 
-THIRDPARTY_LIBRARY_DEPENDENCIES_testharness = 
+THIRDPARTY_LIBRARY_DEPENDENCIES_testharness = \
+	glew/libglew.a
 
 #Per-target per-platform dependencies
 
