@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/input.h>
+#define __USE_UNIX98
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
