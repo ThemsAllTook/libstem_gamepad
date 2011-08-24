@@ -1,0 +1,5 @@
+Gamepad provides a low-level interface for USB game controller input. Each element on an attached game controller is mapped to zero or more buttons and zero or more axes. Buttons are binary controls; axes are continuous values ranging from -1.0f to 1.0f. The presence and ordering of elements depends on the platform and driver.
+
+Typical usage: Register event listeners for GAMEPAD_EVENT_DEVICE_ATTACHED with Gamepad_eventDispatcher(), then call Gamepad_init() and Gamepad_detectDevices(). Your GAMEPAD_EVENT_DEVICE_ATTACHED handler will be called once per connected game controller. In your handler, register for GAMEPAD_EVENT_BUTTON_DOWN, GAMEPAD_EVENT_BUTTON_UP, and GAMEPAD_EVENT_AXIS_MOVED with the device's eventDispatcher. Call Gamepad_processEvents() every frame, and Gamepad_detectDevices() occasionally to be notified of new devices that were plugged in after your Gamepad_init() call.
+
+See Gamepad.h for more details.

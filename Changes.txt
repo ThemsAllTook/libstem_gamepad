@@ -1,0 +1,5 @@
+1.1.1
+ * Fixed crashes from retrieving gamepad description strings
+ * Fixed a memory leak
+ * Fixed a potential thread deadlock on Linux
+ * Removed leftover joystick debug code
