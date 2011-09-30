@@ -414,7 +414,7 @@ void Gamepad_detectDevices() {
 			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
 			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
 			
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_ATTACHED, deviceRecord);
+			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_ATTACHED), deviceRecord);
 			
 			pthread_create(&deviceRecordPrivate->thread, NULL, deviceThread, deviceRecord);
 		}
@@ -431,7 +431,7 @@ void Gamepad_processEvents() {
 	
 	pthread_mutex_lock(&eventQueueMutex);
 	for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
-		eventQueue[eventIndex].dispatcher->dispatchEvent(eventQueue[eventIndex].dispatcher, eventQueue[eventIndex].eventType, eventQueue[eventIndex].eventData);
+		eventQueue[eventIndex].dispatcher->dispatchEvent(eventQueue[eventIndex].dispatcher, Atom_fromString(eventQueue[eventIndex].eventType), eventQueue[eventIndex].eventData);
 		if (!strcmp(eventQueue[eventIndex].eventType, GAMEPAD_EVENT_DEVICE_REMOVED)) {
 			disposeDevice(eventQueue[eventIndex].eventData);
 		}

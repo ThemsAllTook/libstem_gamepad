@@ -390,7 +390,7 @@ static void onDeviceRemoved(void * context, IOReturn result, void * sender, IOHI
 	
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		if (((struct Gamepad_devicePrivate *) devices[deviceIndex]->privateData)->deviceRef == device) {
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_REMOVED, devices[deviceIndex]);
+			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_REMOVED), devices[deviceIndex]);
 			
 			disposeDevice(devices[deviceIndex]);
 			numDevices--;
@@ -502,7 +502,7 @@ void Gamepad_detectDevices() {
 	}
 	
 	for (eventIndex = 0; eventIndex < deviceEventCount; eventIndex++) {
-		deviceEventQueue[eventIndex].dispatcher->dispatchEvent(deviceEventQueue[eventIndex].dispatcher, deviceEventQueue[eventIndex].eventType, deviceEventQueue[eventIndex].eventData);
+		deviceEventQueue[eventIndex].dispatcher->dispatchEvent(deviceEventQueue[eventIndex].dispatcher, Atom_fromString(deviceEventQueue[eventIndex].eventType), deviceEventQueue[eventIndex].eventData);
 	}
 	deviceEventCount = 0;
 }
@@ -515,7 +515,7 @@ void Gamepad_processEvents() {
 	}
 	
 	for (eventIndex = 0; eventIndex < inputEventCount; eventIndex++) {
-		inputEventQueue[eventIndex].dispatcher->dispatchEvent(inputEventQueue[eventIndex].dispatcher, inputEventQueue[eventIndex].eventType, inputEventQueue[eventIndex].eventData);
+		inputEventQueue[eventIndex].dispatcher->dispatchEvent(inputEventQueue[eventIndex].dispatcher, Atom_fromString(inputEventQueue[eventIndex].eventType), inputEventQueue[eventIndex].eventData);
 		free(inputEventQueue[eventIndex].eventData);
 	}
 	inputEventCount = 0;

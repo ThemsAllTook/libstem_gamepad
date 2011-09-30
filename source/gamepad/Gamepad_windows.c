@@ -240,7 +240,7 @@ void Gamepad_detectDevices() {
 			
 			deviceRecord->privateData = deviceRecordPrivate;
 			
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_ATTACHED, deviceRecord);
+			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_ATTACHED), deviceRecord);
 		}
 	}
 }
@@ -274,7 +274,7 @@ static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWOR
 	axisEvent.value = (value - devicePrivate->axisRanges[axisIndex][0]) / (float) (devicePrivate->axisRanges[axisIndex][1] - devicePrivate->axisRanges[axisIndex][0]) * 2.0f - 1.0f;
 	
 	device->axisStates[axisIndex] = axisEvent.value;
-	device->eventDispatcher->dispatchEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, &axisEvent);
+	device->eventDispatcher->dispatchEvent(device->eventDispatcher, Atom_fromString(GAMEPAD_EVENT_AXIS_MOVED), &axisEvent);
 }
 
 static void handleButtonChange(struct Gamepad_device * device, DWORD lastValue, DWORD value) {
@@ -289,7 +289,7 @@ static void handleButtonChange(struct Gamepad_device * device, DWORD lastValue, 
 			buttonEvent.down = !!(value & (1 << buttonIndex));
 			
 			device->buttonStates[buttonIndex] = buttonEvent.down;
-			device->eventDispatcher->dispatchEvent(device->eventDispatcher, buttonEvent.down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP, &buttonEvent);
+			device->eventDispatcher->dispatchEvent(device->eventDispatcher, Atom_fromString(buttonEvent.down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP), &buttonEvent);
 		}
 	}
 }
@@ -342,7 +342,7 @@ static void handlePOVChange(struct Gamepad_device * device, DWORD lastValue, DWO
 		axisEvent.value = newX;
 		
 		device->axisStates[devicePrivate->povXAxisIndex] = axisEvent.value;
-		device->eventDispatcher->dispatchEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, &axisEvent);
+		device->eventDispatcher->dispatchEvent(device->eventDispatcher, Atom_fromString(GAMEPAD_EVENT_AXIS_MOVED), &axisEvent);
 	}
 	if (newY != lastY) {
 		axisEvent.device = device;
@@ -351,7 +351,7 @@ static void handlePOVChange(struct Gamepad_device * device, DWORD lastValue, DWO
 		axisEvent.value = newY;
 		
 		device->axisStates[devicePrivate->povYAxisIndex] = axisEvent.value;
-		device->eventDispatcher->dispatchEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, &axisEvent);
+		device->eventDispatcher->dispatchEvent(device->eventDispatcher, Atom_fromString(GAMEPAD_EVENT_AXIS_MOVED), &axisEvent);
 	}
 }
 
@@ -374,7 +374,7 @@ void Gamepad_processEvents() {
 		info.dwFlags = JOY_RETURNALL;
 		result = joyGetPosEx(devicePrivate->joystickID, &info);
 		if (result == JOYERR_UNPLUGGED) {
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), GAMEPAD_EVENT_DEVICE_REMOVED, device);
+			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_REMOVED), device);
 			
 			disposeDevice(device);
 			numDevices--;
