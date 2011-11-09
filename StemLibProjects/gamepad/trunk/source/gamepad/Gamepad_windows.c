@@ -357,15 +357,17 @@ static void handlePOVChange(struct Gamepad_device * device, DWORD lastValue, DWO
 
 void Gamepad_processEvents() {
 	unsigned int deviceIndex;
+	static bool inProcessEvents;
 	JOYINFOEX info;
 	MMRESULT result;
 	struct Gamepad_device * device;
 	struct Gamepad_devicePrivate * devicePrivate;
 	
-	if (!inited) {
+	if (!inited || inProcessEvents) {
 		return;
 	}
 	
+	inProcessEvents = true;
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		device = devices[deviceIndex];
 		devicePrivate = device->privateData;
@@ -410,5 +412,6 @@ void Gamepad_processEvents() {
 			devicePrivate->lastState = info;
 		}
 	}
+	inProcessEvents = false;
 }
 

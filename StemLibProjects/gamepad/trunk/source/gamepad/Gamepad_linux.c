@@ -423,12 +423,14 @@ void Gamepad_detectDevices() {
 }
 
 void Gamepad_processEvents() {
-	unsigned int eventIndex;	
+	unsigned int eventIndex;
+	static bool inProcessEvents;
 	
-	if (!inited) {
+	if (!inited || inProcessEvents) {
 		return;
 	}
 	
+	inProcessEvents = true;
 	pthread_mutex_lock(&eventQueueMutex);
 	for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
 		eventQueue[eventIndex].dispatcher->dispatchEvent(eventQueue[eventIndex].dispatcher, Atom_fromString(eventQueue[eventIndex].eventType), eventQueue[eventIndex].eventData);
@@ -438,5 +440,6 @@ void Gamepad_processEvents() {
 	}
 	eventCount = 0;
 	pthread_mutex_unlock(&eventQueueMutex);
+	inProcessEvents = false;
 }
 
