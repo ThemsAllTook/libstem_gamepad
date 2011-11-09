@@ -509,15 +509,17 @@ void Gamepad_detectDevices() {
 
 void Gamepad_processEvents() {
 	unsigned int eventIndex;
+	static bool inProcessEvents;
 	
-	if (hidManager == NULL) {
+	if (hidManager == NULL || inProcessEvents) {
 		return;
 	}
 	
+	inProcessEvents = true;
 	for (eventIndex = 0; eventIndex < inputEventCount; eventIndex++) {
 		inputEventQueue[eventIndex].dispatcher->dispatchEvent(inputEventQueue[eventIndex].dispatcher, Atom_fromString(inputEventQueue[eventIndex].eventType), inputEventQueue[eventIndex].eventData);
 		free(inputEventQueue[eventIndex].eventData);
 	}
 	inputEventCount = 0;
+	inProcessEvents = false;
 }
-
