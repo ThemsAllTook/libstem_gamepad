@@ -66,56 +66,6 @@ static bool inited = false;
 #define test_bit(bitIndex, array) \
 	((array[(bitIndex) / (sizeof(int) * 8)] >> ((bitIndex) % (sizeof(int) * 8))) & 0x1)
 
-static char ** findGamepadPaths(unsigned int * outNumGamepads) {
-	DIR * dev_input;
-	struct dirent * entity;
-	unsigned int numGamepads = 0;
-	char ** gamepadDevs = NULL;
-	unsigned int charsConsumed;
-	int num;
-	int fd;
-	int evCapBits[(EV_CNT - 1) / sizeof(int) * 8 + 1];
-	int evKeyBits[(KEY_CNT - 1) / sizeof(int) * 8 + 1];
-	int evAbsBits[(ABS_CNT - 1) / sizeof(int) * 8 + 1];
-	char fileName[PATH_MAX];
-	
-	dev_input = opendir("/dev/input");
-	if (dev_input != NULL) {
-		for (entity = readdir(dev_input); entity != NULL; entity = readdir(dev_input)) {
-			charsConsumed = 0;
-			if (sscanf(entity->d_name, "event%d%n", &num, &charsConsumed) && charsConsumed == strlen(entity->d_name)) {
-				snprintf(fileName, PATH_MAX, "/dev/input/%s", entity->d_name);
-				fd = open(fileName, O_RDONLY, 0);
-				memset(evCapBits, 0, sizeof(evCapBits));
-				memset(evKeyBits, 0, sizeof(evKeyBits));
-				memset(evAbsBits, 0, sizeof(evAbsBits));
-				if (ioctl(fd, EVIOCGBIT(0, sizeof(evCapBits)), evCapBits) < 0 ||
-				    ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(evKeyBits)), evKeyBits) < 0 ||
-				    ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(evAbsBits)), evAbsBits) < 0) {
-					close(fd);
-					continue;
-				}
-				if (!test_bit(EV_KEY, evCapBits) || !test_bit(EV_ABS, evCapBits) ||
-				    !test_bit(ABS_X, evAbsBits) || !test_bit(ABS_Y, evAbsBits) ||
-				    (!test_bit(BTN_TRIGGER, evKeyBits) && !test_bit(BTN_A, evKeyBits) && !test_bit(BTN_1, evKeyBits))) {
-					close(fd);
-					continue;
-				}
-				close(fd);
-				
-				numGamepads++;
-				gamepadDevs = realloc(gamepadDevs, sizeof(char *) * numGamepads);
-				gamepadDevs[numGamepads - 1] = malloc(strlen(fileName) + 1);
-				strcpy(gamepadDevs[numGamepads - 1], fileName);
-			}
-		}
-		closedir(dev_input);
-	}
-	
-	*outNumGamepads = numGamepads;
-	return gamepadDevs;
-}
-
 void Gamepad_init() {
 	if (!inited) {
 		pthread_mutexattr_t recursiveLock;
@@ -320,105 +270,138 @@ static void * deviceThread(void * context) {
 }
 
 void Gamepad_detectDevices() {
-	unsigned int numPaths;
-	char ** gamepadPaths;
+	struct input_id id;
+	DIR * dev_input;
+	struct dirent * entity;
+	unsigned int charsConsumed;
+	int num;
+	int fd;
+	int evCapBits[(EV_CNT - 1) / sizeof(int) * 8 + 1];
+	int evKeyBits[(KEY_CNT - 1) / sizeof(int) * 8 + 1];
+	int evAbsBits[(ABS_CNT - 1) / sizeof(int) * 8 + 1];
+	char fileName[PATH_MAX];
 	bool duplicate;
-	unsigned int pathIndex, gamepadIndex;
+	unsigned int gamepadIndex;
 	struct stat statBuf;
 	struct Gamepad_device * deviceRecord;
 	struct Gamepad_devicePrivate * deviceRecordPrivate;
-	int fd;
 	char name[128];
 	char * description;
-	int evKeyBits[(KEY_CNT - 1) / sizeof(int) * 8 + 1];
-	int evAbsBits[(ABS_CNT - 1) / sizeof(int) * 8 + 1];
 	int bit;
-	struct input_id id;
+	time_t currentTime;
+	static time_t lastInputStatTime;
 	
 	if (!inited) {
 		return;
 	}
 	
-	gamepadPaths = findGamepadPaths(&numPaths);
-	
 	pthread_mutex_lock(&devicesMutex);
-	for (pathIndex = 0; pathIndex < numPaths; pathIndex++) {
-		duplicate = false;
-		for (gamepadIndex = 0; gamepadIndex < numDevices; gamepadIndex++) {
-			if (!strcmp(((struct Gamepad_devicePrivate *) devices[gamepadIndex]->privateData)->path, gamepadPaths[pathIndex])) {
-				duplicate = true;
-				break;
-			}
-		}
-		if (duplicate) {
-			free(gamepadPaths[pathIndex]);
-			continue;
-		}
-		
-		if (!stat(gamepadPaths[pathIndex], &statBuf)) {
-			deviceRecord = malloc(sizeof(struct Gamepad_device));
-			deviceRecord->deviceID = nextDeviceID++;
-			deviceRecord->eventDispatcher = EventDispatcher_create(deviceRecord);
-			devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
-			devices[numDevices++] = deviceRecord;
-			
-			fd = open(gamepadPaths[pathIndex], O_RDONLY, 0);
-			
-			deviceRecordPrivate = malloc(sizeof(struct Gamepad_devicePrivate));
-			deviceRecordPrivate->fd = fd;
-			deviceRecordPrivate->path = gamepadPaths[pathIndex];
-			memset(deviceRecordPrivate->buttonMap, 0xFF, sizeof(deviceRecordPrivate->buttonMap));
-			memset(deviceRecordPrivate->axisMap, 0xFF, sizeof(deviceRecordPrivate->axisMap));
-			deviceRecord->privateData = deviceRecordPrivate;
-			
-			if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) > 0) {
-				description = malloc(strlen(name) + 1);
-				strcpy(description, name);
-			} else {
-				description = malloc(strlen(gamepadPaths[pathIndex]) + 1);
-				strcpy(description, gamepadPaths[pathIndex]);
-			}
-			deviceRecord->description = description;
-			
-			if (!ioctl(fd, EVIOCGID, &id)) {
-				deviceRecord->vendorID = id.vendor;
-				deviceRecord->productID = id.product;
-			} else {
-				deviceRecord->vendorID = deviceRecord->productID = 0;
-			}
-			
-			memset(evKeyBits, 0, sizeof(evKeyBits));
-			memset(evAbsBits, 0, sizeof(evAbsBits));
-			ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(evKeyBits)), evKeyBits);
-			ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(evAbsBits)), evAbsBits);
-			
-			deviceRecord->numAxes = 0;
-			for (bit = 0; bit < ABS_CNT; bit++) {
-				if (test_bit(bit, evAbsBits)) {
-					if (ioctl(fd, EVIOCGABS(bit), &deviceRecordPrivate->axisInfo[bit]) < 0 ||
-					    deviceRecordPrivate->axisInfo[bit].minimum == deviceRecordPrivate->axisInfo[bit].maximum) {
-						continue;
+	
+	dev_input = opendir("/dev/input");
+	currentTime = time(NULL);
+	if (dev_input != NULL) {
+		while ((entity = readdir(dev_input)) != NULL) {
+			charsConsumed = 0;
+			if (sscanf(entity->d_name, "event%d%n", &num, &charsConsumed) && charsConsumed == strlen(entity->d_name)) {
+				snprintf(fileName, PATH_MAX, "/dev/input/%s", entity->d_name);
+				if (stat(fileName, &statBuf) || statBuf.st_mtime < lastInputStatTime) {
+					continue;
+				}
+				
+				duplicate = false;
+				for (gamepadIndex = 0; gamepadIndex < numDevices; gamepadIndex++) {
+					if (!strcmp(((struct Gamepad_devicePrivate *) devices[gamepadIndex]->privateData)->path, fileName)) {
+						duplicate = true;
+						break;
 					}
-					deviceRecordPrivate->axisMap[bit] = deviceRecord->numAxes;
-					deviceRecord->numAxes++;
 				}
-			}
-			deviceRecord->numButtons = 0;
-			for (bit = BTN_MISC; bit < KEY_CNT; bit++) {
-				if (test_bit(bit, evKeyBits)) {
-					deviceRecordPrivate->buttonMap[bit - BTN_MISC] = deviceRecord->numButtons;
-					deviceRecord->numButtons++;
+				if (duplicate) {
+					continue;
 				}
+				
+				fd = open(fileName, O_RDONLY, 0);
+				memset(evCapBits, 0, sizeof(evCapBits));
+				memset(evKeyBits, 0, sizeof(evKeyBits));
+				memset(evAbsBits, 0, sizeof(evAbsBits));
+				if (ioctl(fd, EVIOCGBIT(0, sizeof(evCapBits)), evCapBits) < 0 ||
+				    ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(evKeyBits)), evKeyBits) < 0 ||
+				    ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(evAbsBits)), evAbsBits) < 0) {
+					close(fd);
+					continue;
+				}
+				if (!test_bit(EV_KEY, evCapBits) || !test_bit(EV_ABS, evCapBits) ||
+				    !test_bit(ABS_X, evAbsBits) || !test_bit(ABS_Y, evAbsBits) ||
+				    (!test_bit(BTN_TRIGGER, evKeyBits) && !test_bit(BTN_A, evKeyBits) && !test_bit(BTN_1, evKeyBits))) {
+					close(fd);
+					continue;
+				}
+				
+				deviceRecord = malloc(sizeof(struct Gamepad_device));
+				deviceRecord->deviceID = nextDeviceID++;
+				deviceRecord->eventDispatcher = EventDispatcher_create(deviceRecord);
+				devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
+				devices[numDevices++] = deviceRecord;
+				
+				deviceRecordPrivate = malloc(sizeof(struct Gamepad_devicePrivate));
+				deviceRecordPrivate->fd = fd;
+				deviceRecordPrivate->path = malloc(strlen(fileName) + 1);
+				strcpy(deviceRecordPrivate->path, fileName);
+				memset(deviceRecordPrivate->buttonMap, 0xFF, sizeof(deviceRecordPrivate->buttonMap));
+				memset(deviceRecordPrivate->axisMap, 0xFF, sizeof(deviceRecordPrivate->axisMap));
+				deviceRecord->privateData = deviceRecordPrivate;
+				
+				if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) > 0) {
+					description = malloc(strlen(name) + 1);
+					strcpy(description, name);
+				} else {
+					description = malloc(strlen(fileName) + 1);
+					strcpy(description, fileName);
+				}
+				deviceRecord->description = description;
+				
+				if (!ioctl(fd, EVIOCGID, &id)) {
+					deviceRecord->vendorID = id.vendor;
+					deviceRecord->productID = id.product;
+				} else {
+					deviceRecord->vendorID = deviceRecord->productID = 0;
+				}
+				
+				memset(evKeyBits, 0, sizeof(evKeyBits));
+				memset(evAbsBits, 0, sizeof(evAbsBits));
+				ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(evKeyBits)), evKeyBits);
+				ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(evAbsBits)), evAbsBits);
+				
+				deviceRecord->numAxes = 0;
+				for (bit = 0; bit < ABS_CNT; bit++) {
+					if (test_bit(bit, evAbsBits)) {
+						if (ioctl(fd, EVIOCGABS(bit), &deviceRecordPrivate->axisInfo[bit]) < 0 ||
+							  deviceRecordPrivate->axisInfo[bit].minimum == deviceRecordPrivate->axisInfo[bit].maximum) {
+							continue;
+						}
+						deviceRecordPrivate->axisMap[bit] = deviceRecord->numAxes;
+						deviceRecord->numAxes++;
+					}
+				}
+				deviceRecord->numButtons = 0;
+				for (bit = BTN_MISC; bit < KEY_CNT; bit++) {
+					if (test_bit(bit, evKeyBits)) {
+						deviceRecordPrivate->buttonMap[bit - BTN_MISC] = deviceRecord->numButtons;
+						deviceRecord->numButtons++;
+					}
+				}
+				
+				deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
+				deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
+				
+				Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_ATTACHED), deviceRecord);
+				
+				pthread_create(&deviceRecordPrivate->thread, NULL, deviceThread, deviceRecord);
 			}
-			
-			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
-			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
-			
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_ATTACHED), deviceRecord);
-			
-			pthread_create(&deviceRecordPrivate->thread, NULL, deviceThread, deviceRecord);
 		}
+		closedir(dev_input);
 	}
+	
+	lastInputStatTime = currentTime;
 	pthread_mutex_unlock(&devicesMutex);
 }
 
