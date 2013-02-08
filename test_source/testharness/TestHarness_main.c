@@ -103,7 +103,7 @@ static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) 
 
 #define POLL_ITERATION_INTERVAL 30
 
-void Target_draw() {
+bool Target_draw() {
 	unsigned int gamepadIndex;
 	struct Gamepad_device * device;
 	unsigned int axesPerRow, buttonsPerRow;
@@ -197,6 +197,7 @@ void Target_draw() {
 	}
 	
 	Shell_redisplay();
+	return true;
 }
 
 void Target_keyDown(unsigned int charCode, unsigned int keyCode, unsigned int keyModifiers) {
@@ -206,7 +207,7 @@ void Target_keyDown(unsigned int charCode, unsigned int keyCode, unsigned int ke
 	}
 }
 
-void Target_keyUp(unsigned int charCode, unsigned int keyCode, unsigned int keyModifiers) {
+void Target_keyUp(unsigned int keyCode, unsigned int keyModifiers) {
 }
 
 void Target_keyModifiersChanged(unsigned int keyModifiers) {

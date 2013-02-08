@@ -21,8 +21,8 @@ endef
 iphone_sdk_version_integer = ${subst .,0,$1}${word ${words ${wordlist 2, ${words ${subst ., ,$1}}, ${subst ., ,$1}}}, 00}
 
 TARGET_PLATFORMS_macosx = macosx iphonesimulator iphoneos
-TARGET_PLATFORMS_linux = linux
-TARGET_PLATFORMS_windows = windows
+TARGET_PLATFORMS_linux = linux32 linux64
+TARGET_PLATFORMS_windows = win32 win64
 
 PROJECT_NAME = gamepad
 IPHONE_BUILD_SDK_VERSION ?= 4.2
@@ -35,12 +35,12 @@ EXECUTABLE_TARGETS = unittest
 APPLICATION_TARGETS = testharness
 TARGETS = ${LIBRARY_TARGETS} ${EXECUTABLE_TARGETS} ${APPLICATION_TARGETS}
 CONFIGURATIONS = debug profile release
-PLATFORMS = ${filter ${TARGET_PLATFORMS_${HOST_PLATFORM}},macosx linux windows}
+PLATFORMS = ${filter ${TARGET_PLATFORMS_${HOST_PLATFORM}},macosx linux32 linux64 win32 win64}
 ANALYZERS = splint clang
 
-TARGET_NAME_library = libstem_gamepad
-TARGET_NAME_unittest = gamepad_unittest
-TARGET_NAME_testharness = gamepad_testharness
+TARGET_NAME_library = libstem_${PROJECT_NAME}
+TARGET_NAME_unittest = ${PROJECT_NAME}_unittest
+TARGET_NAME_testharness = ${PROJECT_NAME}_testharness
 HUMAN_READABLE_TARGET_NAME_testharness = GamepadTestHarness
 
 #Per-target configurations
@@ -49,9 +49,9 @@ CONFIGURATIONS_unittest = debug
 CONFIGURATIONS_testharness = debug profile release
 
 #Per-target platforms
-PLATFORMS_library = ${filter ${PLATFORMS},macosx linux windows}
-PLATFORMS_unittest = ${filter ${PLATFORMS},macosx linux windows}
-PLATFORMS_testharness = ${filter ${PLATFORMS},macosx linux windows}
+PLATFORMS_library = ${filter ${PLATFORMS},macosx linux32 linux64 win32 win64}
+PLATFORMS_unittest = ${filter ${PLATFORMS},macosx linux32 linux64 win32 win64}
+PLATFORMS_testharness = ${filter ${PLATFORMS},macosx linux32 linux64 win32 win64}
 
 #Per-target compile/link settings
 CCFLAGS_unittest = -I test_source -include build/intermediate/TestList.h
@@ -75,28 +75,47 @@ RANLIB_macosx = /usr/bin/ranlib
 SPLINT_macosx = /usr/local/bin/splint
 CLANG_macosx = /usr/bin/clang
 SDKROOT_macosx = /Developer/SDKs/MacOSX10.5.sdk
-ARCHS_macosx = ppc i386 x86_64
+ARCHS_macosx = i386 x86_64
 CCFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5
 LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5 -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT
 
-CC_linux_i686 = /usr/bin/gcc
-AR_linux = /usr/bin/ar
-RANLIB_linux = /usr/bin/ranlib
-SPLINT_linux = /usr/local/bin/splint
-CLANG_linux = /usr/local/bin/clang
-ARCHS_linux = i686
-CCFLAGS_linux = 
-LINKFLAGS_linux = -lm -ldl -lglut -lGLU -Wl,-E
+CC_linux32_i386 = /usr/bin/gcc
+AR_linux32 = /usr/bin/ar
+RANLIB_linux32 = /usr/bin/ranlib
+SPLINT_linux32 = /usr/local/bin/splint
+CLANG_linux32 = /usr/local/bin/clang
+ARCHS_linux32 = i386
+CCFLAGS_linux32 = -m32
+LINKFLAGS_linux32 = -m32 -lm -ldl -Wl,-E
 
-CC_windows_i686 = C:/MinGW/bin/gcc.exe
-AR_windows = C:/MinGW/bin/ar.exe
-RANLIB_windows = C:/MinGW/bin/ranlib.exe
-SPLINT_windows = C:/splint-3.1.1/bin/splint.exe
-CLANG_windows = C:/llvm/bin/clang.exe
-ARCHS_windows = i686
-CCFLAGS_windows = -DFREEGLUT_STATIC
-LINKFLAGS_windows = -lfreeglut_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 -mconsole
-EXECUTABLE_SUFFIX_windows = .exe
+CC_linux64_x86_64 = /usr/bin/gcc
+AR_linux64 = /usr/bin/ar
+RANLIB_linux64 = /usr/bin/ranlib
+SPLINT_linux64 = /usr/local/bin/splint
+CLANG_linux64 = /usr/local/bin/clang
+ARCHS_linux64 = x86_64
+CCFLAGS_linux64 = -m64
+LINKFLAGS_linux64 = -m64 -lm -ldl -lglut -lGLU -Wl,-E
+
+CC_win32_i386 = C:/MinGW/bin/gcc.exe
+AR_win32 = C:/MinGW/bin/ar.exe
+RANLIB_win32 = C:/MinGW/bin/ranlib.exe
+SPLINT_win32 = C:/splint-3.1.1/bin/splint.exe
+CLANG_win32 = C:/llvm/bin/clang.exe
+ARCHS_win32 = i386
+CCFLAGS_win32 = 
+LINKFLAGS_win32 = 
+EXECUTABLE_SUFFIX_win32 = .exe
+
+CC_win64_x86_64 = C:/MinGW-w64/bin/x86_64-w64-mingw32-gcc.exe
+AR_win64 = C:/MinGW-w64/bin/x86_64-w64-mingw32-ar.exe
+RANLIB_win64 = C:/MinGW-w64/bin/x86_64-w64-mingw32-ranlib.exe
+SPLINT_win64 = C:/splint-3.1.1/bin/splint.exe
+CLANG_win64 = C:/llvm/bin/clang.exe
+ARCHS_win64 = x86_64
+CCFLAGS_win64 = -DFREEGLUT_STATIC
+LINKFLAGS_win64 = -lfreeglut_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 -mconsole
+EXECUTABLE_SUFFIX_win64 = .exe
 
 #General compile/link settings
 DEFINE_CCFLAGS = -DVERSION_MAJOR=${VERSION_MAJOR}u -DVERSION_MINOR=${VERSION_MINOR}u -DVERSION_TWEAK=${VERSION_TWEAK}u
@@ -153,13 +172,13 @@ THIRDPARTY_LIBRARY_DEPENDENCIES_unittest_macosx =
 SOURCES_library = 
 
 SOURCES_library_macosx = \
-	source/gamepad/Gamepad_macosx.c
+	source/${PROJECT_NAME}/Gamepad_macosx.c
 
 SOURCES_library_windows = \
-	source/gamepad/Gamepad_windows.c
+	source/${PROJECT_NAME}/Gamepad_windows.c
 
 SOURCES_library_linux = \
-	source/gamepad/Gamepad_linux.c
+	source/${PROJECT_NAME}/Gamepad_linux.c
 
 SOURCES_unittest = \
 	test_source/unittest/framework/unittest_main.c \
@@ -174,7 +193,7 @@ SOURCES_testharness = \
 #Include files to be distributed with library
 
 INCLUDES = \
-	source/gamepad/Gamepad.h
+	source/${PROJECT_NAME}/Gamepad.h
 
 #Target resources
 
@@ -185,7 +204,8 @@ RESOURCES_testharness_macosx =
 
 #General analyzer settings
 CLANGFLAGS = 
-CLANGFLAGS_windows = -I C:/MinGW/include -I C:/MinGW/lib/gcc/mingw32/4.3.2/include
+CLANGFLAGS_win32 = -I C:/MinGW/include -I C:/MinGW/lib/gcc/mingw32/4.3.2/include
+CLANGFLAGS_win64 = -I C:/MinGW/include -I C:/MinGW/lib/gcc/mingw32/4.3.2/include
 SPLINTFLAGS = -exportlocal
 
 #Source files excluded from static analysis
@@ -272,6 +292,7 @@ define dependency_template #(target, configuration, platform, arch, source_file)
 build/intermediate/$1-$2-$3-$4/${notdir ${basename $5}}.d: $5 ${PREREQS_$1} | build/intermediate/$1-$2-$3-$4
 	${CC_$3_$4} ${CCFLAGS} ${CCFLAGS_$1} ${CCFLAGS_$2} ${CCFLAGS_$3} ${call include_ccflags_template,$1,$3} ${call define_ccflags_template,$1,$2,$3,$4} -MM -o $$@.temp $5
 	sed 's,\(${notdir ${basename $5}}\)\.o[ :]*,$${basename $$@}.o $${basename $$@}.d: ,g' < $$@.temp > $$@
+	rm $$@.temp
 endef
 
 #Produces dependency build targets for all source files in each configuration/platform/arch
@@ -442,7 +463,7 @@ define copy_target_resources #(target, platform, resources_dir)
 	${foreach resource,${RESOURCES_$1} ${RESOURCES_$1_$2}, \
 		cp -r ${resource} $3${newline_and_tab} \
 	}
-	find $3 -name .svn -print0 | xargs -0 rm -rf
+	find $3 -name .svn -print0 -or -name .DS_Store -print0 | xargs -0 rm -rf
 endef
 
 define assemble_executable_macosx #(target, configuration, platform)
@@ -517,18 +538,32 @@ build/$1/$2-iphoneos/${TARGET_NAME_$1}.app/${TARGET_NAME_$1}: ${THIN_BINARIES_$1
 	lipo -create -output $$@ ${THIN_BINARIES_$1_$2_iphoneos}
 endef
 
-define assemble_application_linux #(target, configuration)
-build/$1/$2-linux/${TARGET_NAME_$1}: ${THIN_BINARIES_$1_$2_linux} ${RESOURCES_$1} ${RESOURCES_$1_linux} | build/$1/$2-linux
-	mkdir -p build/$1/$2-linux/Resources
-	${call copy_target_resources,$1,linux,build/$1/$2-linux/Resources}
-	cp ${THIN_BINARIES_$1_$2_linux} $$@
+define assemble_application_linux32 #(target, configuration)
+build/$1/$2-linux32/${TARGET_NAME_$1}: ${THIN_BINARIES_$1_$2_linux32} ${RESOURCES_$1} ${RESOURCES_$1_linux32} | build/$1/$2-linux32
+	mkdir -p build/$1/$2-linux32/Resources
+	${call copy_target_resources,$1,linux32,build/$1/$2-linux32/Resources}
+	cp ${THIN_BINARIES_$1_$2_linux32} $$@
 endef
 
-define assemble_application_windows #(target, configuration)
-build/$1/$2-windows/${TARGET_NAME_$1}.exe: ${THIN_BINARIES_$1_$2_windows} ${RESOURCES_$1} ${RESOURCES_$1_windows} | build/$1/$2-windows
-	mkdir -p build/$1/$2-windows/Resources
-	${call copy_target_resources,$1,windows,build/$1/$2-windows/Resources}
-	cp ${THIN_BINARIES_$1_$2_windows} $$@
+define assemble_application_linux64 #(target, configuration)
+build/$1/$2-linux64/${TARGET_NAME_$1}: ${THIN_BINARIES_$1_$2_linux64} ${RESOURCES_$1} ${RESOURCES_$1_linux64} | build/$1/$2-linux64
+	mkdir -p build/$1/$2-linux64/Resources
+	${call copy_target_resources,$1,linux64,build/$1/$2-linux64/Resources}
+	cp ${THIN_BINARIES_$1_$2_linux64} $$@
+endef
+
+define assemble_application_win32 #(target, configuration)
+build/$1/$2-win32/${TARGET_NAME_$1}.exe: ${THIN_BINARIES_$1_$2_win32} ${RESOURCES_$1} ${RESOURCES_$1_win32} | build/$1/$2-win32
+	mkdir -p build/$1/$2-win32/Resources
+	${call copy_target_resources,$1,win32,build/$1/$2-win32/Resources}
+	cp ${THIN_BINARIES_$1_$2_win32} $$@
+endef
+
+define assemble_application_win64 #(target, configuration)
+build/$1/$2-win64/${TARGET_NAME_$1}.exe: ${THIN_BINARIES_$1_$2_win64} ${RESOURCES_$1} ${RESOURCES_$1_win64} | build/$1/$2-win64
+	mkdir -p build/$1/$2-win64/Resources
+	${call copy_target_resources,$1,win64,build/$1/$2-win64/Resources}
+	cp ${THIN_BINARIES_$1_$2_win64} $$@
 endef
 
 #Produces final application build targets
@@ -564,11 +599,19 @@ define application_file_template_iphoneos #(target)
 ${TARGET_NAME_$1}.app/${TARGET_NAME_$1}
 endef
 
-define application_file_template_linux #(target)
+define application_file_template_linux32 #(target)
 ${TARGET_NAME_$1}
 endef
 
-define application_file_template_windows #(target)
+define application_file_template_linux64 #(target)
+${TARGET_NAME_$1}
+endef
+
+define application_file_template_win32 #(target)
+${TARGET_NAME_$1}.exe
+endef
+
+define application_file_template_win64 #(target)
 ${TARGET_NAME_$1}.exe
 endef
 
@@ -601,13 +644,21 @@ run_unittests_iphonesimulator: unittest
 	DYLD_ROOT_PATH=${SDKROOT_iphonesimulator} \
 	./build/unittest/debug-iphonesimulator/${TARGET_NAME_unittest} "${CURDIR}/build/unittest/debug-iphonesimulator"
 
-.PHONY: run_unittests_linux
-run_unittests_linux: unittest
-	./build/unittest/debug-linux/${TARGET_NAME_unittest} "${CURDIR}/build/unittest/debug-linux"
+.PHONY: run_unittests_linux32
+run_unittests_linux32: unittest
+	./build/unittest/debug-linux32/${TARGET_NAME_unittest} "${CURDIR}/build/unittest/debug-linux32"
 
-.PHONY: run_unittests_windows
-run_unittests_windows: unittest
-	./build/unittest/debug-windows/${TARGET_NAME_unittest}.exe "${CURDIR}/build/unittest/debug-windows"
+.PHONY: run_unittests_linux64
+run_unittests_linux64: unittest
+	./build/unittest/debug-linux64/${TARGET_NAME_unittest} "${CURDIR}/build/unittest/debug-linux64"
+
+.PHONY: run_unittests_win32
+run_unittests_win32: unittest
+	./build/unittest/debug-win32/${TARGET_NAME_unittest}.exe "${CURDIR}/build/unittest/debug-win32"
+
+.PHONY: run_unittests_win64
+run_unittests_win64: unittest
+	./build/unittest/debug-win64/${TARGET_NAME_unittest}.exe "${CURDIR}/build/unittest/debug-win64"
 
 define analyze_file_template_clang #(target, platform, file)
 build/analyzer-results/clang-$1-$2/${basename ${notdir $3}}.txt: $3 ${PREREQS_$1} | build/analyzer-results/clang-$1-$2
@@ -763,7 +814,7 @@ endef
 source_dist:
 	mkdir -p build/source_dist/include
 	mkdir -p build/source_dist/lib
-	mkdir -p build/source_dist/source/gamepad
+	mkdir -p build/source_dist/source/${PROJECT_NAME}
 	mkdir -p build/source_dist/test_resources
 	mkdir -p build/source_dist/test_source/testharness
 	mkdir -p build/source_dist/test_source/unittest/framework
@@ -777,7 +828,7 @@ source_dist:
 	find build/source_dist/include -name .svn -print0 | xargs -0 rm -rf
 	find build/source_dist/lib -name .svn -print0 | xargs -0 rm -rf
 	
-	cp source/gamepad/* build/source_dist/source/gamepad
+	cp source/${PROJECT_NAME}/* build/source_dist/source/${PROJECT_NAME}
 	
 	cp test_resources/* build/source_dist/test_resources
 	
