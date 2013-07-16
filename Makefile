@@ -90,7 +90,7 @@ SPLINT_linux32 = /usr/local/bin/splint
 CLANG_linux32 = /usr/local/bin/clang
 ARCHS_linux32 = i386
 CCFLAGS_linux32 = -m32
-LINKFLAGS_linux32 = -m32 -lm -ldl -Wl,-E
+LINKFLAGS_linux32 = -m32 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
 CC_linux64_x86_64 = /usr/bin/gcc
 AR_linux64 = /usr/bin/ar
@@ -99,7 +99,7 @@ SPLINT_linux64 = /usr/local/bin/splint
 CLANG_linux64 = /usr/local/bin/clang
 ARCHS_linux64 = x86_64
 CCFLAGS_linux64 = -m64
-LINKFLAGS_linux64 = -m64 -lm -ldl -lglut -lGLU -Wl,-E
+LINKFLAGS_linux64 = -m64 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
 MINGW_W32_PATH ?= C:/MinGW
 MINGW_W32_VERSION ?= 4.6.2
@@ -173,10 +173,16 @@ SOURCES_library =
 SOURCES_library_macosx = \
 	source/${PROJECT_NAME}/Gamepad_macosx.c
 
-SOURCES_library_windows = \
+SOURCES_library_win32 = \
 	source/${PROJECT_NAME}/Gamepad_windows.c
 
-SOURCES_library_linux = \
+SOURCES_library_win64 = \
+	source/${PROJECT_NAME}/Gamepad_windows.c
+
+SOURCES_library_linux32 = \
+	source/${PROJECT_NAME}/Gamepad_linux.c
+
+SOURCES_library_linux64 = \
 	source/${PROJECT_NAME}/Gamepad_linux.c
 
 SOURCES_unittest = \
