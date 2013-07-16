@@ -23,6 +23,10 @@
 #ifndef __GAMEPAD_H__
 #define __GAMEPAD_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include "utilities/EventDispatcher.h"
 
@@ -124,5 +128,9 @@ void Gamepad_detectDevices();
    GAMEPAD_EVENT_BUTTON_UP, and GAMEPAD_EVENT_AXIS_MOVED events through the eventDispatcher of the
    device that generated the event. */
 void Gamepad_processEvents();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
