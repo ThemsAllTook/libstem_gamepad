@@ -106,7 +106,7 @@ struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex) {
 #define REG_STRING_MAX 256
 
 static char * getDeviceDescription(UINT joystickID, JOYCAPS caps) {
-	char * description;
+	char * description = NULL;
 	char subkey[REG_STRING_MAX];
 	HKEY topKey, key;
 	LONG result;
