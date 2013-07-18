@@ -140,10 +140,8 @@ LINKFLAGS = ${FRAMEWORK_LINKFLAGS} ${LIBRARY_LINKFLAGS} ${OTHER_LINKFLAGS}
 
 LINK_ORDER = \
 	library \
-	utilities \
 	glutshell \
 	glgraphics \
-	stemobject \
 	glew
 
 #Dependencies (can optionally be per-target or per-target-per-platform)
@@ -151,14 +149,10 @@ LINK_ORDER = \
 PROJECT_LIBRARY_DEPENDENCIES_unittest = library
 PROJECT_LIBRARY_DEPENDENCIES_testharness = library
 STEM_LIBRARY_DEPENDENCIES_library = \
-	utilities/1.7.0 \
-	stemobject/3.0.2 \
 	glutshell/1.6.0 \
 	glgraphics/1.2.0 \
 	shell/1.0.0
 STEM_LIBRARY_DEPENDENCIES_testharness = \
-	utilities/1.7.0 \
-	stemobject/3.0.2 \
 	glutshell/1.6.0 \
 	glgraphics/1.2.0 \
 	shell/1.0.0
@@ -168,7 +162,8 @@ THIRDPARTY_LIBRARY_DEPENDENCIES_testharness = \
 
 #Per-target source file lists
 
-SOURCES_library = 
+SOURCES_library = \
+	source/${PROJECT_NAME}/Gamepad_private.c
 
 SOURCES_library_macosx = \
 	source/${PROJECT_NAME}/Gamepad_macosx.c

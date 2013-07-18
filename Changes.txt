@@ -1,3 +1,7 @@
+1.2.0
+ * Removed dependencies on utilities and stemobject. Library is now completely standalone, though test harness still requires shell and glutshell.
+ * Gamepad API no longer uses EventDispatcher, instead providing GLUT-style callback registration for all previous event types
+
 1.1.6
  * Added 64-bit Windows and Linux support
 
