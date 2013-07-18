@@ -21,6 +21,7 @@
 */
 
 #include "gamepad/Gamepad.h"
+#include "gamepad/Gamepad_private.h"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -45,8 +46,8 @@ struct Gamepad_devicePrivate {
 };
 
 struct Gamepad_queuedEvent {
-	EventDispatcher * dispatcher;
-	const char * eventType;
+	unsigned int deviceID;
+	enum Gamepad_eventType eventType;
 	void * eventData;
 };
 
@@ -60,7 +61,6 @@ static size_t eventQueueSize = 0;
 static size_t eventCount = 0;
 static pthread_mutex_t eventQueueMutex;
 
-static EventDispatcher * eventDispatcher = NULL;
 static bool inited = false;
 
 #define test_bit(bitIndex, array) \
@@ -79,8 +79,6 @@ void Gamepad_init() {
 }
 
 static void disposeDevice(struct Gamepad_device * device) {
-	device->eventDispatcher->dispose(device->eventDispatcher);
-	
 	close(((struct Gamepad_devicePrivate *) device->privateData)->fd);
 	free(((struct Gamepad_devicePrivate *) device->privateData)->path);
 	free(device->privateData);
@@ -122,7 +120,7 @@ void Gamepad_shutdown() {
 		devices = NULL;
 		
 		for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
-			if (!strcmp(eventQueue[eventIndex].eventType, GAMEPAD_EVENT_DEVICE_REMOVED)) {
+			if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_DEVICE_REMOVED) {
 				disposeDevice(eventQueue[eventIndex].eventData);
 			}
 		}
@@ -132,20 +130,8 @@ void Gamepad_shutdown() {
 		free(eventQueue);
 		eventQueue = NULL;
 		
-		if (eventDispatcher != NULL) {
-			eventDispatcher->dispose(eventDispatcher);
-			eventDispatcher = NULL;
-		}
-		
 		inited = false;
 	}
-}
-
-EventDispatcher * Gamepad_eventDispatcher() {
-	if (eventDispatcher == NULL) {
-		eventDispatcher = EventDispatcher_create(NULL);
-	}
-	return eventDispatcher;
 }
 
 unsigned int Gamepad_numDevices() {
@@ -171,10 +157,10 @@ struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex) {
 	return result;
 }
 
-static void queueEvent(EventDispatcher * dispatcher, const char * eventType, void * eventData) {
+static void queueEvent(unsigned int deviceID, enum Gamepad_eventType eventType, void * eventData) {
 	struct Gamepad_queuedEvent queuedEvent;
 	
-	queuedEvent.dispatcher = dispatcher;
+	queuedEvent.deviceID = deviceID;
 	queuedEvent.eventType = eventType;
 	queuedEvent.eventData = eventData;
 	
@@ -196,7 +182,7 @@ static void queueAxisEvent(struct Gamepad_device * device, double timestamp, uns
 	axisEvent->axisID = axisID;
 	axisEvent->value = value;
 	
-	queueEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, axisEvent);
+	queueEvent(device->deviceID, GAMEPAD_EVENT_AXIS_MOVED, axisEvent);
 }
 
 static void queueButtonEvent(struct Gamepad_device * device, double timestamp, unsigned int buttonID, bool down) {
@@ -208,7 +194,7 @@ static void queueButtonEvent(struct Gamepad_device * device, double timestamp, u
 	buttonEvent->buttonID = buttonID;
 	buttonEvent->down = down;
 	
-	queueEvent(device->eventDispatcher, down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP, buttonEvent);
+	queueEvent(device->deviceID, down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP, buttonEvent);
 }
 
 static void * deviceThread(void * context) {
@@ -338,7 +324,6 @@ void Gamepad_detectDevices() {
 				
 				deviceRecord = malloc(sizeof(struct Gamepad_device));
 				deviceRecord->deviceID = nextDeviceID++;
-				deviceRecord->eventDispatcher = EventDispatcher_create(deviceRecord);
 				devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
 				devices[numDevices++] = deviceRecord;
 				
@@ -393,7 +378,9 @@ void Gamepad_detectDevices() {
 				deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
 				deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
 				
-				Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_ATTACHED), deviceRecord);
+				if (Gamepad_deviceAttachCallback != NULL) {
+					Gamepad_deviceAttachCallback(deviceRecord);
+				}
 				
 				pthread_create(&deviceRecordPrivate->thread, NULL, deviceThread, deviceRecord);
 			}
@@ -403,6 +390,43 @@ void Gamepad_detectDevices() {
 	
 	lastInputStatTime = currentTime;
 	pthread_mutex_unlock(&devicesMutex);
+}
+
+static void processQueuedEvent(struct Gamepad_queuedEvent event) {
+	switch (event.eventType) {
+		case GAMEPAD_EVENT_DEVICE_ATTACHED:
+			if (Gamepad_deviceAttachCallback != NULL) {
+				Gamepad_deviceAttachCallback(event.eventData);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_DEVICE_REMOVED:
+			if (Gamepad_deviceRemoveCallback != NULL) {
+				Gamepad_deviceRemoveCallback(event.eventData);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_BUTTON_DOWN:
+			if (Gamepad_buttonDownCallback != NULL) {
+				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
+				Gamepad_buttonDownCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_BUTTON_UP:
+			if (Gamepad_buttonUpCallback != NULL) {
+				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
+				Gamepad_buttonUpCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_AXIS_MOVED:
+			if (Gamepad_axisMoveCallback != NULL) {
+				struct Gamepad_axisEvent * axisEvent = event.eventData;
+				Gamepad_axisMoveCallback(axisEvent->device, axisEvent->axisID, axisEvent->value, axisEvent->timestamp);
+			}
+			break;
+	}
 }
 
 void Gamepad_processEvents() {
@@ -416,8 +440,8 @@ void Gamepad_processEvents() {
 	inProcessEvents = true;
 	pthread_mutex_lock(&eventQueueMutex);
 	for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
-		eventQueue[eventIndex].dispatcher->dispatchEvent(eventQueue[eventIndex].dispatcher, Atom_fromString(eventQueue[eventIndex].eventType), eventQueue[eventIndex].eventData);
-		if (!strcmp(eventQueue[eventIndex].eventType, GAMEPAD_EVENT_DEVICE_REMOVED)) {
+		processQueuedEvent(eventQueue[eventIndex]);
+		if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_DEVICE_REMOVED) {
 			disposeDevice(eventQueue[eventIndex].eventData);
 		}
 	}

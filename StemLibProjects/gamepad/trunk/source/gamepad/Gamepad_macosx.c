@@ -21,6 +21,7 @@
 */
 
 #include "gamepad/Gamepad.h"
+#include "gamepad/Gamepad_private.h"
 #include <IOKit/hid/IOHIDLib.h>
 #include <limits.h>
 #include <mach/mach.h>
@@ -46,8 +47,8 @@ struct Gamepad_devicePrivate {
 };
 
 struct Gamepad_queuedEvent {
-	EventDispatcher * dispatcher;
-	const char * eventType;
+	unsigned int deviceID;
+	enum Gamepad_eventType eventType;
 	void * eventData;
 };
 
@@ -63,8 +64,6 @@ static size_t inputEventCount = 0;
 static struct Gamepad_queuedEvent * deviceEventQueue = NULL;
 static size_t deviceEventQueueSize = 0;
 static size_t deviceEventCount = 0;
-
-static EventDispatcher * eventDispatcher = NULL;
 
 static void hatValueToXY(CFIndex value, CFIndex range, int * outX, int * outY) {
 	if (value == range) {
@@ -93,10 +92,10 @@ static void hatValueToXY(CFIndex value, CFIndex range, int * outX, int * outY) {
 	}
 }
 
-static void queueInputEvent(EventDispatcher * dispatcher, const char * eventType, void * eventData) {
+static void queueInputEvent(unsigned int deviceID, enum Gamepad_eventType eventType, void * eventData) {
 	struct Gamepad_queuedEvent queuedEvent;
 	
-	queuedEvent.dispatcher = dispatcher;
+	queuedEvent.deviceID = deviceID;
 	queuedEvent.eventType = eventType;
 	queuedEvent.eventData = eventData;
 	
@@ -116,7 +115,7 @@ static void queueAxisEvent(struct Gamepad_device * device, double timestamp, uns
 	axisEvent->axisID = axisID;
 	axisEvent->value = value;
 	
-	queueInputEvent(device->eventDispatcher, GAMEPAD_EVENT_AXIS_MOVED, axisEvent);
+	queueInputEvent(device->deviceID, GAMEPAD_EVENT_AXIS_MOVED, axisEvent);
 }
 
 static void queueButtonEvent(struct Gamepad_device * device, double timestamp, unsigned int buttonID, bool down) {
@@ -128,7 +127,7 @@ static void queueButtonEvent(struct Gamepad_device * device, double timestamp, u
 	buttonEvent->buttonID = buttonID;
 	buttonEvent->down = down;
 	
-	queueInputEvent(device->eventDispatcher, down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP, buttonEvent);
+	queueInputEvent(device->deviceID, down ? GAMEPAD_EVENT_BUTTON_DOWN : GAMEPAD_EVENT_BUTTON_UP, buttonEvent);
 }
 
 static void onDeviceValueChanged(void * context, IOReturn result, void * sender, IOHIDValueRef value) {
@@ -269,7 +268,6 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	deviceRecord->productID = IOHIDDeviceGetProductID(device);
 	deviceRecord->numAxes = 0;
 	deviceRecord->numButtons = 0;
-	deviceRecord->eventDispatcher = EventDispatcher_create(deviceRecord);
 	devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
 	devices[numDevices++] = deviceRecord;
 	
@@ -331,7 +329,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	
 	IOHIDDeviceRegisterInputValueCallback(device, onDeviceValueChanged, deviceRecord);
 	
-	queuedEvent.dispatcher = Gamepad_eventDispatcher();
+	queuedEvent.deviceID = deviceRecord->deviceID;
 	queuedEvent.eventType = GAMEPAD_EVENT_DEVICE_ATTACHED;
 	queuedEvent.eventData = deviceRecord;
 	
@@ -348,7 +346,7 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 	IOHIDDeviceRegisterInputValueCallback(((struct Gamepad_devicePrivate *) deviceRecord->privateData)->deviceRef, NULL, NULL);
 	
 	for (inputEventIndex = 0; inputEventIndex < inputEventCount; inputEventIndex++) {
-		if (inputEventQueue[inputEventIndex].dispatcher == deviceRecord->eventDispatcher) {
+		if (inputEventQueue[inputEventIndex].deviceID == deviceRecord->deviceID) {
 			unsigned int inputEventIndex2;
 			
 			free(inputEventQueue[inputEventIndex].eventData);
@@ -361,7 +359,7 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 	}
 	
 	for (deviceEventIndex = 0; deviceEventIndex < deviceEventCount; deviceEventIndex++) {
-		if (deviceEventQueue[deviceEventIndex].dispatcher == deviceRecord->eventDispatcher) {
+		if (deviceEventQueue[deviceEventIndex].deviceID == deviceRecord->deviceID) {
 			unsigned int deviceEventIndex2;
 			
 			deviceEventCount--;
@@ -371,8 +369,6 @@ static void disposeDevice(struct Gamepad_device * deviceRecord) {
 			deviceEventIndex--;
 		}
 	}
-	
-	deviceRecord->eventDispatcher->dispose(deviceRecord->eventDispatcher);
 	
 	free(((struct Gamepad_devicePrivate *) deviceRecord->privateData)->axisElements);
 	free(((struct Gamepad_devicePrivate *) deviceRecord->privateData)->buttonElements);
@@ -390,7 +386,9 @@ static void onDeviceRemoved(void * context, IOReturn result, void * sender, IOHI
 	
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		if (((struct Gamepad_devicePrivate *) devices[deviceIndex]->privateData)->deviceRef == device) {
-			Gamepad_eventDispatcher()->dispatchEvent(Gamepad_eventDispatcher(), Atom_fromString(GAMEPAD_EVENT_DEVICE_REMOVED), devices[deviceIndex]);
+			if (Gamepad_deviceRemoveCallback != NULL) {
+				Gamepad_deviceRemoveCallback(devices[deviceIndex]);
+			}
 			
 			disposeDevice(devices[deviceIndex]);
 			numDevices--;
@@ -468,19 +466,7 @@ void Gamepad_shutdown() {
 		free(devices);
 		devices = NULL;
 		numDevices = 0;
-		
-		if (eventDispatcher != NULL) {
-			eventDispatcher->dispose(eventDispatcher);
-			eventDispatcher = NULL;
-		}
 	}
-}
-
-EventDispatcher * Gamepad_eventDispatcher() {
-	if (eventDispatcher == NULL) {
-		eventDispatcher = EventDispatcher_create(NULL);
-	}
-	return eventDispatcher;
 }
 
 unsigned int Gamepad_numDevices() {
@@ -494,6 +480,43 @@ struct Gamepad_device * Gamepad_deviceAtIndex(unsigned int deviceIndex) {
 	return devices[deviceIndex];
 }
 
+static void processQueuedEvent(struct Gamepad_queuedEvent event) {
+	switch (event.eventType) {
+		case GAMEPAD_EVENT_DEVICE_ATTACHED:
+			if (Gamepad_deviceAttachCallback != NULL) {
+				Gamepad_deviceAttachCallback(event.eventData);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_DEVICE_REMOVED:
+			if (Gamepad_deviceRemoveCallback != NULL) {
+				Gamepad_deviceRemoveCallback(event.eventData);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_BUTTON_DOWN:
+			if (Gamepad_buttonDownCallback != NULL) {
+				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
+				Gamepad_buttonDownCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_BUTTON_UP:
+			if (Gamepad_buttonUpCallback != NULL) {
+				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
+				Gamepad_buttonUpCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+			}
+			break;
+			
+		case GAMEPAD_EVENT_AXIS_MOVED:
+			if (Gamepad_axisMoveCallback != NULL) {
+				struct Gamepad_axisEvent * axisEvent = event.eventData;
+				Gamepad_axisMoveCallback(axisEvent->device, axisEvent->axisID, axisEvent->value, axisEvent->timestamp);
+			}
+			break;
+	}
+}
+
 void Gamepad_detectDevices() {
 	unsigned int eventIndex;
 	
@@ -502,7 +525,7 @@ void Gamepad_detectDevices() {
 	}
 	
 	for (eventIndex = 0; eventIndex < deviceEventCount; eventIndex++) {
-		deviceEventQueue[eventIndex].dispatcher->dispatchEvent(deviceEventQueue[eventIndex].dispatcher, Atom_fromString(deviceEventQueue[eventIndex].eventType), deviceEventQueue[eventIndex].eventData);
+		processQueuedEvent(deviceEventQueue[eventIndex]);
 	}
 	deviceEventCount = 0;
 }
@@ -517,7 +540,7 @@ void Gamepad_processEvents() {
 	
 	inProcessEvents = true;
 	for (eventIndex = 0; eventIndex < inputEventCount; eventIndex++) {
-		inputEventQueue[eventIndex].dispatcher->dispatchEvent(inputEventQueue[eventIndex].dispatcher, Atom_fromString(inputEventQueue[eventIndex].eventType), inputEventQueue[eventIndex].eventData);
+		processQueuedEvent(inputEventQueue[eventIndex]);
 		free(inputEventQueue[eventIndex].eventData);
 	}
 	inputEventCount = 0;
