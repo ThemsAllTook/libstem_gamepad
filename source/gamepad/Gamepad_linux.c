@@ -236,7 +236,7 @@ static void * deviceThread(void * context) {
 		}
 	}
 	
-	queueEvent(eventDispatcher, GAMEPAD_EVENT_DEVICE_REMOVED, device);
+	queueEvent(device->deviceID, GAMEPAD_EVENT_DEVICE_REMOVED, device);
 	
 	pthread_mutex_lock(&devicesMutex);
 	for (gamepadIndex = 0; gamepadIndex < numDevices; gamepadIndex++) {
