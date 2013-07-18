@@ -21,6 +21,7 @@
 */
 
 #include "gamepad/Gamepad.h"
+#include "gamepad/Gamepad_private.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -245,7 +246,7 @@ static double currentTime() {
 	return (double) currentTime.QuadPart / frequency.QuadPart;
 }
 
-static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWORD value) {
+static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWORD ivalue) {
 	float value;
 	struct Gamepad_devicePrivate * devicePrivate;
 	
@@ -254,7 +255,7 @@ static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWOR
 	}
 	
 	devicePrivate = device->privateData;
-	value = (value - devicePrivate->axisRanges[axisIndex][0]) / (float) (devicePrivate->axisRanges[axisIndex][1] - devicePrivate->axisRanges[axisIndex][0]) * 2.0f - 1.0f;
+	value = (ivalue - devicePrivate->axisRanges[axisIndex][0]) / (float) (devicePrivate->axisRanges[axisIndex][1] - devicePrivate->axisRanges[axisIndex][0]) * 2.0f - 1.0f;
 	
 	device->axisStates[axisIndex] = value;
 	if (Gamepad_axisMoveCallback != NULL) {
