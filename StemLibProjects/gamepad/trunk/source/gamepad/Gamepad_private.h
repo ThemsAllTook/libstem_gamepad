@@ -57,12 +57,20 @@ struct Gamepad_axisEvent {
 	
 	// Axis position value, in the range [-1..1]
 	float value;
+	
+	// Previous axis position value, in the range [-1..1]
+	float lastValue;
 };
 
-extern void (* Gamepad_deviceAttachCallback)(struct Gamepad_device * device);
-extern void (* Gamepad_deviceRemoveCallback)(struct Gamepad_device * device);
-extern void (* Gamepad_buttonDownCallback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp);
-extern void (* Gamepad_buttonUpCallback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp);
-extern void (* Gamepad_axisMoveCallback)(struct Gamepad_device * device, unsigned int axisID, float value, double timestamp);
+extern void (* Gamepad_deviceAttachCallback)(struct Gamepad_device * device, void * context);
+extern void (* Gamepad_deviceRemoveCallback)(struct Gamepad_device * device, void * context);
+extern void (* Gamepad_buttonDownCallback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context);
+extern void (* Gamepad_buttonUpCallback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context);
+extern void (* Gamepad_axisMoveCallback)(struct Gamepad_device * device, unsigned int axisID, float value, float lastValue, double timestamp, void * context);
+extern void * Gamepad_deviceAttachContext;
+extern void * Gamepad_deviceRemoveContext;
+extern void * Gamepad_buttonDownContext;
+extern void * Gamepad_buttonUpContext;
+extern void * Gamepad_axisMoveContext;
 
 #endif

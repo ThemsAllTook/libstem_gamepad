@@ -71,17 +71,16 @@ CCFLAGS_profile = -g -O3
 CCFLAGS_release = -O3
 
 #Per-platform compile/link settings
-CC_macosx_ppc = /usr/bin/gcc-4.2 -arch ppc
 CC_macosx_i386 = /usr/bin/clang -arch i386
 CC_macosx_x86_64 = /usr/bin/clang -arch x86_64
 AR_macosx = /usr/bin/ar
 RANLIB_macosx = /usr/bin/ranlib
 SPLINT_macosx = /usr/local/bin/splint
 CLANG_macosx = /usr/bin/clang
-SDKROOT_macosx = /Developer/SDKs/MacOSX10.5.sdk
+SDKROOT_macosx = /Developer/SDKs/MacOSX10.6.sdk
 ARCHS_macosx = i386 x86_64
-CCFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5
-LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.5 -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT -framework ApplicationServices
+CCFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.6
+LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.6 -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT -framework ApplicationServices
 
 CC_linux32_i386 = /usr/bin/gcc
 AR_linux32 = /usr/bin/ar
@@ -279,9 +278,9 @@ ${eval ${call create_directory_target_template,build/intermediate}}
 
 define include_ccflags_template #(target, platform)
 -I source \
-${foreach stem_dependency,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${stem_dependency}/include} \
-${foreach thirdparty_dependency,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${dir ${thirdparty_dependency}}include} \
-${foreach source_dependency,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$1_$2},-I dep/${word 1,${subst /, ,${source_dependency}}}/source}
+${foreach stem_dependency,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$2} ${STEM_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${stem_dependency}/include} \
+${foreach thirdparty_dependency,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$2} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${dir ${thirdparty_dependency}}include} \
+${foreach source_dependency,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$2} ${STEM_SOURCE_DEPENDENCIES_$1_$2},-I dep/${word 1,${subst /, ,${source_dependency}}}/source}
 endef
 
 define define_ccflags_template #(target, configuration, platform, arch)
@@ -290,9 +289,9 @@ endef
 
 define dependency_template #(target, configuration, platform, arch, source_file)
 build/intermediate/$1-$2-$3-$4/${notdir ${basename $5}}.d: $5 ${PREREQS_$1} | build/intermediate/$1-$2-$3-$4
-	${CC_$3_$4} ${CCFLAGS} ${CCFLAGS_$1} ${CCFLAGS_$2} ${CCFLAGS_$3} ${call include_ccflags_template,$1,$3} ${call define_ccflags_template,$1,$2,$3,$4} -MM -o $$@.temp $5
-	sed 's,\(${notdir ${basename $5}}\)\.o[ :]*,$${basename $$@}.o $${basename $$@}.d: ,g' < $$@.temp > $$@
-	rm $$@.temp
+	@${CC_$3_$4} ${CCFLAGS} ${CCFLAGS_$1} ${CCFLAGS_$2} ${CCFLAGS_$3} ${call include_ccflags_template,$1,$3} ${call define_ccflags_template,$1,$2,$3,$4} -MM -o $$@.temp $5
+	@sed 's,\(${notdir ${basename $5}}\)\.o[ :]*,$${basename $$@}.o $${basename $$@}.d: ,g' < $$@.temp > $$@
+	@rm $$@.temp
 endef
 
 #Produces dependency build targets for all source files in each configuration/platform/arch
@@ -359,16 +358,16 @@ endef
 
 define library_dependency_template #(target, configuration, platform)
 	${foreach link_library,${LINK_ORDER}, \
-		${foreach library,${filter ${link_library}%,${PROJECT_LIBRARY_DEPENDENCIES} ${PROJECT_LIBRARY_DEPENDENCIES_$1} ${PROJECT_LIBRARY_DEPENDENCIES_$1_$3}}, \
+		${foreach library,${filter ${link_library}%,${PROJECT_LIBRARY_DEPENDENCIES} ${PROJECT_LIBRARY_DEPENDENCIES_$1} ${PROJECT_LIBRARY_DEPENDENCIES_$3} ${PROJECT_LIBRARY_DEPENDENCIES_$1_$3}}, \
 			build/${library}/$2-$3/${TARGET_NAME_${library}}.a \
 		} \
-		${foreach library,${filter ${link_library}%,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$1_$3}}, \
+		${foreach library,${filter ${link_library}%,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$3} ${STEM_LIBRARY_DEPENDENCIES_$1_$3}}, \
 			${STEM_SHARED_DIR}/${library}/library/$2-$3/libstem_${word 1,${subst /, ,${library}}}.a \
 		} \
-		${foreach library,${filter ${link_library}%,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$1_$3}}, \
+		${foreach library,${filter ${link_library}%,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$3} ${STEM_SOURCE_DEPENDENCIES_$1_$3}}, \
 			dep/${word 1,${subst /, ,${library}}}/build/${word 2,${subst /, ,${library}}}/$2-$3/${word 3,${subst /, ,${library}}} \
 		} \
-		${foreach library,${filter ${link_library}%,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$3}}, \
+		${foreach library,${filter ${link_library}%,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$3} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$3}}, \
 			${STEM_SHARED_DIR}/${dir ${library}}library/$3/${notdir ${library}} \
 		} \
 	}
@@ -394,7 +393,7 @@ $1:
 endef
 
 #Invokes make for each source dependency
-${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
+${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${platform}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
 	${eval ${call dependency_submake_template,${dependency}}} \
 }
 
@@ -460,10 +459,11 @@ ${foreach target,${LIBRARY_TARGETS}, \
 }
 
 define copy_target_resources #(target, platform, resources_dir)
+	${if ${strip ${RESOURCES_$1} ${RESOURCES_$1_$2}},mkdir -p $3,}
 	${foreach resource,${RESOURCES_$1} ${RESOURCES_$1_$2}, \
 		cp -r ${resource} $3${newline_and_tab} \
 	}
-	find $3 -name .svn -or -name .DS_Store -print0 | xargs -0 rm -rf
+	find $3 -name .svn -print0 -or -name .DS_Store -print0 | xargs -0 rm -rf
 endef
 
 define assemble_executable_macosx #(target, configuration, platform)
@@ -540,28 +540,24 @@ endef
 
 define assemble_application_linux32 #(target, configuration)
 build/$1/$2-linux32/${TARGET_NAME_$1}: ${THIN_BINARIES_$1_$2_linux32} ${RESOURCES_$1} ${RESOURCES_$1_linux32} | build/$1/$2-linux32
-	mkdir -p build/$1/$2-linux32/Resources
 	${call copy_target_resources,$1,linux32,build/$1/$2-linux32/Resources}
 	cp ${THIN_BINARIES_$1_$2_linux32} $$@
 endef
 
 define assemble_application_linux64 #(target, configuration)
 build/$1/$2-linux64/${TARGET_NAME_$1}: ${THIN_BINARIES_$1_$2_linux64} ${RESOURCES_$1} ${RESOURCES_$1_linux64} | build/$1/$2-linux64
-	mkdir -p build/$1/$2-linux64/Resources
 	${call copy_target_resources,$1,linux64,build/$1/$2-linux64/Resources}
 	cp ${THIN_BINARIES_$1_$2_linux64} $$@
 endef
 
 define assemble_application_win32 #(target, configuration)
 build/$1/$2-win32/${TARGET_NAME_$1}.exe: ${THIN_BINARIES_$1_$2_win32} ${RESOURCES_$1} ${RESOURCES_$1_win32} | build/$1/$2-win32
-	mkdir -p build/$1/$2-win32/Resources
 	${call copy_target_resources,$1,win32,build/$1/$2-win32/Resources}
 	cp ${THIN_BINARIES_$1_$2_win32} $$@
 endef
 
 define assemble_application_win64 #(target, configuration)
 build/$1/$2-win64/${TARGET_NAME_$1}.exe: ${THIN_BINARIES_$1_$2_win64} ${RESOURCES_$1} ${RESOURCES_$1_win64} | build/$1/$2-win64
-	mkdir -p build/$1/$2-win64/Resources
 	${call copy_target_resources,$1,win64,build/$1/$2-win64/Resources}
 	cp ${THIN_BINARIES_$1_$2_win64} $$@
 endef
@@ -728,7 +724,7 @@ include: ${INCLUDES} | ${foreach include_file,${INCLUDES},build/include/${notdir
 .PHONY: clean
 clean:
 	rm -rf build
-	${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
+	${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${platform}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
 		${MAKE} -C dep/${word 1,${subst /, ,${dependency}}} clean${newline_and_tab} \
 	}
 

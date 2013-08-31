@@ -93,31 +93,31 @@ void Gamepad_processEvents();
    called only during calls to Gamepad_init() and Gamepad_detectDevices(), in the thread from
    which those functions were called. Calling this function with a NULL argument will stop any
    previously registered callback from being called subsequently. */
-void Gamepad_deviceAttachFunc(void (* callback)(struct Gamepad_device * device));
+void Gamepad_deviceAttachFunc(void (* callback)(struct Gamepad_device * device, void * context), void * context);
 
 /* Registers a function to be called whenever a device is detached. The specified function can be
    called at any time, and will not necessarily be called from the main thread. Calling this
    function with a NULL argument will stop any previously registered callback from being called
    subsequently. */
-void Gamepad_deviceRemoveFunc(void (* callback)(struct Gamepad_device * device));
+void Gamepad_deviceRemoveFunc(void (* callback)(struct Gamepad_device * device, void * context), void * context);
 
 /* Registers a function to be called whenever a button on any attached device is pressed. The
    specified function will be called only during calls to Gamepad_processEvents(), in the
    thread from which Gamepad_processEvents() was called. Calling this function with a NULL
    argument will stop any previously registered callback from being called subsequently.  */
-void Gamepad_buttonDownFunc(void (* callback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp));
+void Gamepad_buttonDownFunc(void (* callback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context), void * context);
 
 /* Registers a function to be called whenever a button on any attached device is released. The
    specified function will be called only during calls to Gamepad_processEvents(), in the
    thread from which Gamepad_processEvents() was called. Calling this function with a NULL
    argument will stop any previously registered callback from being called subsequently.  */
-void Gamepad_buttonUpFunc(void (* callback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp));
+void Gamepad_buttonUpFunc(void (* callback)(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context), void * context);
 
 /* Registers a function to be called whenever an axis on any attached device is moved. The
    specified function will be called only during calls to Gamepad_processEvents(), in the
    thread from which Gamepad_processEvents() was called. Calling this function with a NULL
    argument will stop any previously registered callback from being called subsequently.  */
-void Gamepad_axisMoveFunc(void (* callback)(struct Gamepad_device * device, unsigned int axisID, float value, double timestamp));
+void Gamepad_axisMoveFunc(void (* callback)(struct Gamepad_device * device, unsigned int axisID, float value, float lastValue, double timestamp, void * context), void * context);
 
 #ifdef __cplusplus
 }

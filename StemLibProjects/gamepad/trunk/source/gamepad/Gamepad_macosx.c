@@ -106,7 +106,7 @@ static void queueInputEvent(unsigned int deviceID, enum Gamepad_eventType eventT
 	inputEventQueue[inputEventCount++] = queuedEvent;
 }
 
-static void queueAxisEvent(struct Gamepad_device * device, double timestamp, unsigned int axisID, float value) {
+static void queueAxisEvent(struct Gamepad_device * device, double timestamp, unsigned int axisID, float value, float lastValue) {
 	struct Gamepad_axisEvent * axisEvent;
 	
 	axisEvent = malloc(sizeof(struct Gamepad_axisEvent));
@@ -114,6 +114,7 @@ static void queueAxisEvent(struct Gamepad_device * device, double timestamp, uns
 	axisEvent->timestamp = timestamp;
 	axisEvent->axisID = axisID;
 	axisEvent->value = value;
+	axisEvent->lastValue = lastValue;
 	
 	queueInputEvent(device->deviceID, GAMEPAD_EVENT_AXIS_MOVED, axisEvent);
 }
@@ -176,7 +177,8 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 					queueAxisEvent(deviceRecord,
 					               IOHIDValueGetTimeStamp(value) * timebaseInfo.numer / timebaseInfo.denom * 0.000000001,
 					               axisIndex,
-					               x);
+					               x,
+					               deviceRecord->axisStates[axisIndex]);
 					
 					deviceRecord->axisStates[axisIndex] = x;
 				}
@@ -185,7 +187,8 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 					queueAxisEvent(deviceRecord,
 					               IOHIDValueGetTimeStamp(value) * timebaseInfo.numer / timebaseInfo.denom * 0.000000001,
 					               axisIndex + 1,
-					               y);
+					               y,
+					               deviceRecord->axisStates[axisIndex + 1]);
 					
 					deviceRecord->axisStates[axisIndex + 1] = y;
 				}
@@ -204,7 +207,8 @@ static void onDeviceValueChanged(void * context, IOReturn result, void * sender,
 				queueAxisEvent(deviceRecord,
 				               IOHIDValueGetTimeStamp(value) * timebaseInfo.numer / timebaseInfo.denom * 0.000000001,
 				               axisIndex,
-				               floatValue);
+				               floatValue,
+				               deviceRecord->axisStates[axisIndex]);
 				
 				deviceRecord->axisStates[axisIndex] = floatValue;
 			}
@@ -387,7 +391,7 @@ static void onDeviceRemoved(void * context, IOReturn result, void * sender, IOHI
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		if (((struct Gamepad_devicePrivate *) devices[deviceIndex]->privateData)->deviceRef == device) {
 			if (Gamepad_deviceRemoveCallback != NULL) {
-				Gamepad_deviceRemoveCallback(devices[deviceIndex]);
+				Gamepad_deviceRemoveCallback(devices[deviceIndex], Gamepad_deviceRemoveContext);
 			}
 			
 			disposeDevice(devices[deviceIndex]);
@@ -484,34 +488,34 @@ static void processQueuedEvent(struct Gamepad_queuedEvent event) {
 	switch (event.eventType) {
 		case GAMEPAD_EVENT_DEVICE_ATTACHED:
 			if (Gamepad_deviceAttachCallback != NULL) {
-				Gamepad_deviceAttachCallback(event.eventData);
+				Gamepad_deviceAttachCallback(event.eventData, Gamepad_deviceAttachContext);
 			}
 			break;
 			
 		case GAMEPAD_EVENT_DEVICE_REMOVED:
 			if (Gamepad_deviceRemoveCallback != NULL) {
-				Gamepad_deviceRemoveCallback(event.eventData);
+				Gamepad_deviceRemoveCallback(event.eventData, Gamepad_deviceRemoveContext);
 			}
 			break;
 			
 		case GAMEPAD_EVENT_BUTTON_DOWN:
 			if (Gamepad_buttonDownCallback != NULL) {
 				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
-				Gamepad_buttonDownCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+				Gamepad_buttonDownCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp, Gamepad_buttonDownContext);
 			}
 			break;
 			
 		case GAMEPAD_EVENT_BUTTON_UP:
 			if (Gamepad_buttonUpCallback != NULL) {
 				struct Gamepad_buttonEvent * buttonEvent = event.eventData;
-				Gamepad_buttonUpCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp);
+				Gamepad_buttonUpCallback(buttonEvent->device, buttonEvent->buttonID, buttonEvent->timestamp, Gamepad_buttonUpContext);
 			}
 			break;
 			
 		case GAMEPAD_EVENT_AXIS_MOVED:
 			if (Gamepad_axisMoveCallback != NULL) {
 				struct Gamepad_axisEvent * axisEvent = event.eventData;
-				Gamepad_axisMoveCallback(axisEvent->device, axisEvent->axisID, axisEvent->value, axisEvent->timestamp);
+				Gamepad_axisMoveCallback(axisEvent->device, axisEvent->axisID, axisEvent->value, axisEvent->lastValue, axisEvent->timestamp, Gamepad_axisMoveContext);
 			}
 			break;
 	}
