@@ -227,7 +227,7 @@ void Gamepad_detectDevices() {
 			deviceRecord->privateData = deviceRecordPrivate;
 			
 			if (Gamepad_deviceAttachCallback != NULL) {
-				Gamepad_deviceAttachCallback(deviceRecord);
+				Gamepad_deviceAttachCallback(deviceRecord, Gamepad_deviceAttachContext);
 			}
 		}
 	}
@@ -247,7 +247,7 @@ static double currentTime() {
 }
 
 static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWORD ivalue) {
-	float value;
+	float value, lastValue;
 	struct Gamepad_devicePrivate * devicePrivate;
 	
 	if (axisIndex < 0 || axisIndex >= (int) device->numAxes) {
@@ -257,9 +257,10 @@ static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWOR
 	devicePrivate = device->privateData;
 	value = (ivalue - devicePrivate->axisRanges[axisIndex][0]) / (float) (devicePrivate->axisRanges[axisIndex][1] - devicePrivate->axisRanges[axisIndex][0]) * 2.0f - 1.0f;
 	
+	lastValue = device->axisStates[axisIndex];
 	device->axisStates[axisIndex] = value;
 	if (Gamepad_axisMoveCallback != NULL) {
-		Gamepad_axisMoveCallback(device, axisIndex, value, currentTime());
+		Gamepad_axisMoveCallback(device, axisIndex, value, lastValue, currentTime(), Gamepad_axisMoveContext);
 	}
 }
 
@@ -273,7 +274,7 @@ static void handleButtonChange(struct Gamepad_device * device, DWORD lastValue, 
 			
 			device->buttonStates[buttonIndex] = down;
 			if (down && Gamepad_buttonDownCallback != NULL) {
-				Gamepad_buttonDownCallback(device, buttonIndex, currentTime());
+				Gamepad_buttonDownCallback(device, buttonIndex, currentTime(), Gamepad_buttonDownContext);
 			}
 		}
 	}
@@ -322,13 +323,13 @@ static void handlePOVChange(struct Gamepad_device * device, DWORD lastValue, DWO
 	if (newX != lastX) {
 		device->axisStates[devicePrivate->povXAxisIndex] = newX;
 		if (Gamepad_axisMoveCallback != NULL) {
-			Gamepad_axisMoveCallback(device, devicePrivate->povXAxisIndex, newX, currentTime());
+			Gamepad_axisMoveCallback(device, devicePrivate->povXAxisIndex, newX, lastX, currentTime(), Gamepad_axisMoveContext);
 		}
 	}
 	if (newY != lastY) {
 		device->axisStates[devicePrivate->povYAxisIndex] = newY;
 		if (Gamepad_axisMoveCallback != NULL) {
-			Gamepad_axisMoveCallback(device, devicePrivate->povYAxisIndex, newY, currentTime());
+			Gamepad_axisMoveCallback(device, devicePrivate->povYAxisIndex, newY, lastY, currentTime(), Gamepad_axisMoveContext);
 		}
 	}
 }
@@ -355,7 +356,7 @@ void Gamepad_processEvents() {
 		result = joyGetPosEx(devicePrivate->joystickID, &info);
 		if (result == JOYERR_UNPLUGGED) {
 			if (Gamepad_deviceRemoveCallback != NULL) {
-				Gamepad_deviceRemoveCallback(device);
+				Gamepad_deviceRemoveCallback(device, Gamepad_deviceRemoveContext);
 			}
 			
 			disposeDevice(device);

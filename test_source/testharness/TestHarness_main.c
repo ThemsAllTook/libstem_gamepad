@@ -18,44 +18,44 @@
 
 static bool verbose = false;
 
-void onButtonDown(struct Gamepad_device * device, unsigned int buttonID, double timestamp) {
+void onButtonDown(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context) {
 	if (verbose) {
-		printf("Button %u down on device %u at %f\n", buttonID, device->deviceID, timestamp);
+		printf("Button %u down on device %u at %f with context %p\n", buttonID, device->deviceID, timestamp, context);
 	}
 }
 
-void onButtonUp(struct Gamepad_device * device, unsigned int buttonID, double timestamp) {
+void onButtonUp(struct Gamepad_device * device, unsigned int buttonID, double timestamp, void * context) {
 	if (verbose) {
-		printf("Button %u up on device %u at %f\n", buttonID, device->deviceID, timestamp);
+		printf("Button %u up on device %u at %f with context %p\n", buttonID, device->deviceID, timestamp, context);
 	}
 }
 
-void onAxisMoved(struct Gamepad_device * device, unsigned int axisID, float value, double timestamp) {
+void onAxisMoved(struct Gamepad_device * device, unsigned int axisID, float value, float lastValue, double timestamp, void * context) {
 	if (verbose) {
-		printf("Axis %u moved to %f on device %u at %f\n", axisID, value, device->deviceID, timestamp);
+		printf("Axis %u moved from %f to %f on device %u at %f with context %p\n", axisID, lastValue, value, device->deviceID, timestamp, context);
 	}
 }
 
-void onDeviceAttached(struct Gamepad_device * device) {
+void onDeviceAttached(struct Gamepad_device * device, void * context) {
 	if (verbose) {
-		printf("Device ID %u attached (vendor = 0x%X; product = 0x%X)\n", device->deviceID, device->vendorID, device->productID);
+		printf("Device ID %u attached (vendor = 0x%X; product = 0x%X) with context %p\n", device->deviceID, device->vendorID, device->productID, context);
 	}
 }
 
-void onDeviceRemoved(struct Gamepad_device * device) {
+void onDeviceRemoved(struct Gamepad_device * device, void * context) {
 	if (verbose) {
-		printf("Device ID %u removed\n", device->deviceID);
+		printf("Device ID %u removed with context %p\n", device->deviceID, context);
 	}
 }
 
 static unsigned int windowWidth = 800, windowHeight = 600;
 
 static void initGamepad() {
-	Gamepad_deviceAttachFunc(onDeviceAttached);
-	Gamepad_deviceRemoveFunc(onDeviceRemoved);
-	Gamepad_buttonDownFunc(onButtonDown);
-	Gamepad_buttonUpFunc(onButtonUp);
-	Gamepad_axisMoveFunc(onAxisMoved);
+	Gamepad_deviceAttachFunc(onDeviceAttached, (void *) 0x1);
+	Gamepad_deviceRemoveFunc(onDeviceRemoved, (void *) 0x2);
+	Gamepad_buttonDownFunc(onButtonDown, (void *) 0x3);
+	Gamepad_buttonUpFunc(onButtonUp, (void *) 0x4);
+	Gamepad_axisMoveFunc(onAxisMoved, (void *) 0x5);
 	Gamepad_init();
 }
 
