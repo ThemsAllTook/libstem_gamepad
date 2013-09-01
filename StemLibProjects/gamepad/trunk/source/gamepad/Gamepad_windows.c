@@ -275,6 +275,8 @@ static void handleButtonChange(struct Gamepad_device * device, DWORD lastValue, 
 			device->buttonStates[buttonIndex] = down;
 			if (down && Gamepad_buttonDownCallback != NULL) {
 				Gamepad_buttonDownCallback(device, buttonIndex, currentTime(), Gamepad_buttonDownContext);
+			} else if (!down && Gamepad_buttonUpCallback != NULL) {
+				Gamepad_buttonUpCallback(device, buttonIndex, currentTime(), Gamepad_buttonUpContext);
 			}
 		}
 	}
