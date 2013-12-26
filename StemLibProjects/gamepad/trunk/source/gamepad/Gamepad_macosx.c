@@ -404,6 +404,8 @@ static void onDeviceRemoved(void * context, IOReturn result, void * sender, IOHI
 	}
 }
 
+#define GAMEPAD_RUN_LOOP_MODE CFSTR("GamepadRunLoopMode")
+
 void Gamepad_init() {
 	if (hidManager == NULL) {
 		CFStringRef keys[2];
@@ -413,8 +415,6 @@ void Gamepad_init() {
 		CFArrayRef array;
 		
 		hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-		IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone);
-		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 		
 		keys[0] = CFSTR(kIOHIDDeviceUsagePageKey);
 		keys[1] = CFSTR(kIOHIDDeviceUsageKey);
@@ -452,6 +452,16 @@ void Gamepad_init() {
 		
 		IOHIDManagerRegisterDeviceMatchingCallback(hidManager, onDeviceMatched, NULL);
 		IOHIDManagerRegisterDeviceRemovalCallback(hidManager, onDeviceRemoved, NULL);
+		
+		IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone);
+		
+		// Force gamepads to be recognized immediately. The normal run loop mode takes a few frames,
+		// but we can run one iteration with a custom mode to do it without a delay.
+		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), GAMEPAD_RUN_LOOP_MODE);
+		CFRunLoopRunInMode(GAMEPAD_RUN_LOOP_MODE, 0, true);
+		IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetCurrent(), GAMEPAD_RUN_LOOP_MODE);
+		
+		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 	}
 }
 
@@ -460,9 +470,6 @@ void Gamepad_shutdown() {
 		unsigned int deviceIndex;
 		
 		IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-		IOHIDManagerClose(hidManager, 0);
-		CFRelease(hidManager);
-		hidManager = NULL;
 		
 		for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 			disposeDevice(devices[deviceIndex]);
@@ -470,6 +477,10 @@ void Gamepad_shutdown() {
 		free(devices);
 		devices = NULL;
 		numDevices = 0;
+		
+		IOHIDManagerClose(hidManager, 0);
+		CFRelease(hidManager);
+		hidManager = NULL;
 	}
 }
 
