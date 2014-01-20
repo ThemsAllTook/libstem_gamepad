@@ -27,6 +27,8 @@
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 
+#define GAMEPAD_RUN_LOOP_MODE CFSTR("GamepadRunLoopMode")
+
 struct HIDGamepadAxis {
 	IOHIDElementCookie cookie;
 	CFIndex logicalMin;
@@ -404,8 +406,6 @@ static void onDeviceRemoved(void * context, IOReturn result, void * sender, IOHI
 	}
 }
 
-#define GAMEPAD_RUN_LOOP_MODE CFSTR("GamepadRunLoopMode")
-
 void Gamepad_init() {
 	if (hidManager == NULL) {
 		CFStringRef keys[2];
@@ -459,9 +459,6 @@ void Gamepad_init() {
 		// but we can run one iteration with a custom mode to do it without a delay.
 		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), GAMEPAD_RUN_LOOP_MODE);
 		CFRunLoopRunInMode(GAMEPAD_RUN_LOOP_MODE, 0, true);
-		IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetCurrent(), GAMEPAD_RUN_LOOP_MODE);
-		
-		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 	}
 }
 
@@ -539,6 +536,7 @@ void Gamepad_detectDevices() {
 		return;
 	}
 	
+	CFRunLoopRunInMode(GAMEPAD_RUN_LOOP_MODE, 0, true);
 	for (eventIndex = 0; eventIndex < deviceEventCount; eventIndex++) {
 		processQueuedEvent(deviceEventQueue[eventIndex]);
 	}
@@ -554,6 +552,7 @@ void Gamepad_processEvents() {
 	}
 	
 	inProcessEvents = true;
+	CFRunLoopRunInMode(GAMEPAD_RUN_LOOP_MODE, 0, true);
 	for (eventIndex = 0; eventIndex < inputEventCount; eventIndex++) {
 		processQueuedEvent(inputEventQueue[eventIndex]);
 		free(inputEventQueue[eventIndex].eventData);
