@@ -1,6 +1,8 @@
-1.3.1 (2013-12-25)
+1.3.1 (2014-02-01)
  * Gamepad_init() on Mac OS X now detects devices immediately rather than waiting until the next run loop cycle
+ * Gamepad_detectDevices() and Gamepad_processEvents() now work on Mac OS X in applicactions that call them outside the main CF/NSRunLoop
  * Fixed a bug on Mac OS X that could cause a crash on Gamepad_shutdown()
+ * Removed all remaining stem library dependencies (shell, glutshell, and glgraphics for testharness)
 
 1.3.0 (2013-09-01)
  * Gamepad callbacks now include context pointers

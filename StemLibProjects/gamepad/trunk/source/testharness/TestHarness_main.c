@@ -1,8 +1,4 @@
 #include "gamepad/Gamepad.h"
-#include "glutshell/GLUTTarget.h"
-#include "shell/Shell.h"
-#include "shell/ShellKeyCodes.h"
-#include "shell/Target.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -59,18 +55,6 @@ static void initGamepad() {
 	Gamepad_init();
 }
 
-void Target_init() {
-	initGamepad();
-	
-	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0f, windowWidth, windowHeight, 0.0f, -1.0f, 1.0f);
-	glMatrixMode(GL_MODELVIEW);
-	
-	Shell_mainLoop();
-}
-
 static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) {
 	size_t length, charIndex;
 	
@@ -83,7 +67,7 @@ static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) 
 
 #define POLL_ITERATION_INTERVAL 30
 
-bool Target_draw() {
+static void displayFunc() {
 	unsigned int gamepadIndex;
 	struct Gamepad_device * device;
 	unsigned int axesPerRow, buttonsPerRow;
@@ -176,36 +160,18 @@ bool Target_draw() {
 		drawGlutString(0, 0, "No devices found; plug in a USB gamepad and it will be detected automatically");
 	}
 	
-	Shell_redisplay();
-	return true;
+	glutSwapBuffers();
+	glutPostRedisplay();
 }
 
-void Target_keyDown(unsigned int charCode, unsigned int keyCode, unsigned int keyModifiers) {
-	if (keyCode == KEYBOARD_R) {
+static void keyDownFunc(unsigned char charCode, int x, int y) {
+	if (charCode == 'r') {
 		Gamepad_shutdown();
 		initGamepad();
 	}
 }
 
-void Target_keyUp(unsigned int keyCode, unsigned int keyModifiers) {
-}
-
-void Target_keyModifiersChanged(unsigned int keyModifiers) {
-}
-
-void Target_mouseDown(unsigned int buttonNumber, float x, float y) {
-}
-
-void Target_mouseUp(unsigned int buttonNumber, float x, float y) {
-}
-
-void Target_mouseMoved(float x, float y) {
-}
-
-void Target_mouseDragged(unsigned int buttonMask, float x, float y) {
-}
-
-void Target_resized(unsigned int newWidth, unsigned int newHeight) {
+static void reshapeFunc(int newWidth, int newHeight) {
 	windowWidth = newWidth;
 	windowHeight = newHeight;
 	glViewport(0, 0, newWidth, newHeight);
@@ -215,7 +181,7 @@ void Target_resized(unsigned int newWidth, unsigned int newHeight) {
 	glMatrixMode(GL_MODELVIEW);
 }
 
-void GLUTTarget_configure(int argc, const char ** argv, struct GLUTShellConfiguration * configuration) {
+int main(int argc, char ** argv) {
 	int	argIndex;
 	
 	for (argIndex = 1; argIndex < argc; argIndex++) {
@@ -223,5 +189,23 @@ void GLUTTarget_configure(int argc, const char ** argv, struct GLUTShellConfigur
 			verbose = true;
 		}
 	}
-	configuration->windowTitle = "Gamepad Test Harness";
+	
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitWindowPosition(30, 30);
+	glutInitWindowSize(800, 600);
+	glutCreateWindow("Gamepad Test Harness");
+	glutReshapeFunc(reshapeFunc);
+	glutDisplayFunc(displayFunc);
+	glutKeyboardFunc(keyDownFunc);
+	
+	initGamepad();
+	
+	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0f, windowWidth, windowHeight, 0.0f, -1.0f, 1.0f);
+	glMatrixMode(GL_MODELVIEW);
+	
+	glutMainLoop();
 }
