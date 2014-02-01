@@ -35,7 +35,7 @@ IPHONE_DEPLOYMENT_TARGET_VERSION ?= 3.1
 CODESIGN_IDENTITY ?= "iPhone Developer"
 
 LIBRARY_TARGETS = library
-EXECUTABLE_TARGETS = unittest
+EXECUTABLE_TARGETS = 
 APPLICATION_TARGETS = testharness
 TARGETS = ${LIBRARY_TARGETS} ${EXECUTABLE_TARGETS} ${APPLICATION_TARGETS}
 PLATFORMS = ${filter ${TARGET_PLATFORMS_${HOST_PLATFORM}},macosx linux32 linux64 win32 win64}
@@ -136,20 +136,14 @@ OTHER_LINKFLAGS =
 LINKFLAGS = ${FRAMEWORK_LINKFLAGS} ${LIBRARY_LINKFLAGS} ${OTHER_LINKFLAGS}
 
 LINK_ORDER = \
-	library \
-	glutshell \
-	glgraphics \
-	glew
+	library
 
 #Dependencies (can optionally be per-target or per-target-per-platform)
 
 PROJECT_LIBRARY_DEPENDENCIES_unittest = library
 PROJECT_LIBRARY_DEPENDENCIES_testharness = library
 STEM_LIBRARY_DEPENDENCIES = 
-STEM_LIBRARY_DEPENDENCIES_testharness = \
-	glutshell/1.6.0 \
-	glgraphics/1.2.0 \
-	shell/1.1.0
+STEM_LIBRARY_DEPENDENCIES_testharness = 
 STEM_SOURCE_DEPENDENCIES = 
 THIRDPARTY_LIBRARY_DEPENDENCIES_testharness = \
 	glew/1.5.4/libglew.a

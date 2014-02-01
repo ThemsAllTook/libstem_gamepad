@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2013 Alex Diener
+  Copyright (c) 2014 Alex Diener
   
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -17,7 +17,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
   
-  Alex Diener adiener@sacredsoftware.net
+  Alex Diener alex@ludobloom.com
 */
 
 #ifndef __GAMEPAD_H__
@@ -61,7 +61,10 @@ struct Gamepad_device {
 /* Initializes gamepad library and detects initial devices. Call this before any other Gamepad_*()
    function, other than callback registration functions. If you want to receive deviceAttachFunc
    callbacks from devices detected in Gamepad_init(), you must call Gamepad_deviceAttachFunc()
-   before calling Gamepad_init(). */
+   before calling Gamepad_init().
+   
+   This function must be called from the same thread that will be calling Gamepad_processEvents()
+   and Gamepad_detectDevices(). */
 void Gamepad_init();
 
 /* Tears down all data structures created by the gamepad library and releases any memory that was
