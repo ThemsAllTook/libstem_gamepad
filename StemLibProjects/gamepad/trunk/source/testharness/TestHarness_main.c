@@ -1,7 +1,6 @@
 #include "gamepad/Gamepad.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
 
 #ifdef __APPLE__
@@ -10,6 +9,10 @@
 #else
 #include <GL/glut.h>
 #include <GL/gl.h>
+#endif
+
+#ifdef _MSC_VER
+#define snprintf _snprintf
 #endif
 
 static bool verbose = false;
@@ -67,7 +70,7 @@ static void drawGlutString(int rasterPosX, int rasterPosY, const char * string) 
 
 #define POLL_ITERATION_INTERVAL 30
 
-static void displayFunc() {
+static void displayFunc(void) {
 	unsigned int gamepadIndex;
 	struct Gamepad_device * device;
 	unsigned int axesPerRow, buttonsPerRow;
