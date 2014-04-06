@@ -105,6 +105,7 @@ static DWORD (WINAPI * XInputGetCapabilities_proc)(DWORD dwUserIndex, DWORD dwFl
 
 static LPDIRECTINPUT directInputInterface;
 static bool inited = false;
+static bool xInputAvailable;
 
 void Gamepad_init() {
 	if (!inited) {
@@ -120,12 +121,14 @@ void Gamepad_init() {
 			module = LoadLibrary("bin\\XInput1_3.dll");
 		}
 		if (module == NULL) {
-			fprintf(stderr, "Gamepad_init fatal error: Couldn't load XInput1_4.dll or XInput1_3.dll\n");
-			abort();
+			fprintf(stderr, "Gamepad_init couldn't load XInput1_4.dll or XInput1_3.dll; proceeding with DInput only\n");
+			xInputAvailable = false;
+		} else {
+			xInputAvailable = true;
+			XInputGetStateEx_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE_EX *)) GetProcAddress(module, (LPCSTR) 100);
+			XInputGetState_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE *)) GetProcAddress(module, "XInputGetState");
+			XInputGetCapabilities_proc = (DWORD (WINAPI *)(DWORD, DWORD, XINPUT_CAPABILITIES *)) GetProcAddress(module, "XInputGetCapabilities");
 		}
-		XInputGetStateEx_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE_EX *)) GetProcAddress(module, (LPCSTR) 100);
-		XInputGetState_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE *)) GetProcAddress(module, "XInputGetState");
-		XInputGetCapabilities_proc = (DWORD (WINAPI *)(DWORD, DWORD, XINPUT_CAPABILITIES *)) GetProcAddress(module, "XInputGetCapabilities");
 		
 		//result = DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &IID_IDirectInput8, (void **) &directInputInterface, NULL);
 		// Calling DirectInput8Create directly crashes in 64-bit builds for some reason. Loading it with GetProcAddress works though!
@@ -481,7 +484,7 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	DIPROPDWORD bufferSizeProp;
 	bool buffered = true;
 	
-	if (isXInputDevice(&instance->guidProduct)) {
+	if (xInputAvailable && isXInputDevice(&instance->guidProduct)) {
 		return DIENUM_CONTINUE;
 	}
 	
@@ -581,38 +584,40 @@ void Gamepad_detectDevices() {
 		fprintf(stderr, "Warning: IDirectInput_EnumDevices returned 0x%X\n", (unsigned int) result);
 	}
 	
-	for (playerIndex = 0; playerIndex < 4; playerIndex++) {
-		xResult = XInputGetCapabilities_proc(playerIndex, 0, &capabilities);
-		if (xResult == ERROR_SUCCESS && registeredXInputDevices[playerIndex] == NULL) {
-			struct Gamepad_device * deviceRecord;
-			struct Gamepad_devicePrivate * deviceRecordPrivate;
-			
-			deviceRecord = malloc(sizeof(struct Gamepad_device));
-			deviceRecordPrivate = malloc(sizeof(struct Gamepad_devicePrivate));
-			deviceRecordPrivate->isXInput = true;
-			deviceRecord->privateData = deviceRecordPrivate;
-			deviceRecord->deviceID = nextDeviceID++;
-			deviceRecord->description = xInputDeviceNames[playerIndex];
-			// HACK: XInput doesn't provide any way to get vendor and product ID, nor any way to map player index to
-			// DirectInput device enumeration. All we can do is assume all XInput devices are XBox 360 controllers.
-			deviceRecord->vendorID = 0x45E;
-			deviceRecord->productID = 0x28E;
-			deviceRecord->numAxes = 6;
-			deviceRecord->numButtons = 15;
-			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
-			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
-			devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
-			devices[numDevices++] = deviceRecord;
-			registeredXInputDevices[playerIndex] = deviceRecord;
-			
-		} else if (xResult != ERROR_SUCCESS && registeredXInputDevices[playerIndex] != NULL) {
-			for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
-				if (devices[deviceIndex] == registeredXInputDevices[playerIndex]) {
-					removeDevice(deviceIndex);
-					break;
+	if (xInputAvailable) {
+		for (playerIndex = 0; playerIndex < 4; playerIndex++) {
+			xResult = XInputGetCapabilities_proc(playerIndex, 0, &capabilities);
+			if (xResult == ERROR_SUCCESS && registeredXInputDevices[playerIndex] == NULL) {
+				struct Gamepad_device * deviceRecord;
+				struct Gamepad_devicePrivate * deviceRecordPrivate;
+				
+				deviceRecord = malloc(sizeof(struct Gamepad_device));
+				deviceRecordPrivate = malloc(sizeof(struct Gamepad_devicePrivate));
+				deviceRecordPrivate->isXInput = true;
+				deviceRecord->privateData = deviceRecordPrivate;
+				deviceRecord->deviceID = nextDeviceID++;
+				deviceRecord->description = xInputDeviceNames[playerIndex];
+				// HACK: XInput doesn't provide any way to get vendor and product ID, nor any way to map player index to
+				// DirectInput device enumeration. All we can do is assume all XInput devices are XBox 360 controllers.
+				deviceRecord->vendorID = 0x45E;
+				deviceRecord->productID = 0x28E;
+				deviceRecord->numAxes = 6;
+				deviceRecord->numButtons = 15;
+				deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
+				deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
+				devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
+				devices[numDevices++] = deviceRecord;
+				registeredXInputDevices[playerIndex] = deviceRecord;
+				
+			} else if (xResult != ERROR_SUCCESS && registeredXInputDevices[playerIndex] != NULL) {
+				for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
+					if (devices[deviceIndex] == registeredXInputDevices[playerIndex]) {
+						removeDevice(deviceIndex);
+						break;
+					}
 				}
+				registeredXInputDevices[playerIndex] = NULL;
 			}
-			registeredXInputDevices[playerIndex] = NULL;
 		}
 	}
 }
