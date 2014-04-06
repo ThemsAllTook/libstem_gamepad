@@ -161,7 +161,7 @@ static bool isXInputDevice(const GUID * pGuidProductFromDirectInput) {
 	bstrDeviceID  = SysAllocString(L"DeviceID");           if (bstrDeviceID == NULL)  {goto LCleanup;}
 	
 	hr = IWbemLocator_ConnectServer(pIWbemLocator, bstrNamespace, NULL, NULL, 0L,
-	                                 0L, NULL, NULL, &pIWbemServices);
+	                                0L, NULL, NULL, &pIWbemServices);
 	if (FAILED(hr) || pIWbemServices == NULL) {
 		goto LCleanup;
 	}
@@ -268,11 +268,7 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 	
 	deviceRecord->numAxes++;
 	if (instance->dwType & DIDFT_POV) {
-		if (deviceRecordPrivate->buffered) {
-			offset = instance->dwOfs;
-		} else {
-			offset = DIJOFS_POV(deviceRecordPrivate->povCount);
-		}
+		offset = DIJOFS_POV(deviceRecordPrivate->povCount);
 		deviceRecordPrivate->axisInfo[deviceRecord->numAxes - 1].offset = offset;
 		deviceRecordPrivate->axisInfo[deviceRecord->numAxes - 1].isPOV = true;
 		deviceRecord->numAxes++;
@@ -285,26 +281,22 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 		DIPROPDWORD deadZone;
 		HRESULT result;
 		
-		if (deviceRecordPrivate->buffered) {
-			offset = instance->dwOfs;
+		if (!memcmp(&instance->guidType, &GUID_XAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_X;
+		} else if (!memcmp(&instance->guidType, &GUID_YAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_Y;
+		} else if (!memcmp(&instance->guidType, &GUID_ZAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_Z;
+		} else if (!memcmp(&instance->guidType, &GUID_RxAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_RX;
+		} else if (!memcmp(&instance->guidType, &GUID_RyAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_RY;
+		} else if (!memcmp(&instance->guidType, &GUID_RzAxis, sizeof(instance->guidType))) {
+			offset = DIJOFS_RZ;
+		} else if (!memcmp(&instance->guidType, &GUID_Slider, sizeof(instance->guidType))) {
+			offset = DIJOFS_SLIDER(deviceRecordPrivate->sliderCount++);
 		} else {
-			if (memcmp(&instance->guidType, &GUID_XAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_X;
-			} else if (memcmp(&instance->guidType, &GUID_YAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_Y;
-			} else if (memcmp(&instance->guidType, &GUID_ZAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_Z;
-			} else if (memcmp(&instance->guidType, &GUID_RxAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_RX;
-			} else if (memcmp(&instance->guidType, &GUID_RyAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_RY;
-			} else if (memcmp(&instance->guidType, &GUID_RzAxis, sizeof(instance->guidType))) {
-				offset = DIJOFS_RZ;
-			} else if (memcmp(&instance->guidType, &GUID_Slider, sizeof(instance->guidType))) {
-				offset = DIJOFS_SLIDER(deviceRecordPrivate->sliderCount++);
-			} else {
-				offset = -1;
-			}
+			offset = -1;
 		}
 		deviceRecordPrivate->axisInfo[deviceRecord->numAxes - 1].offset = offset;
 		deviceRecordPrivate->axisInfo[deviceRecord->numAxes - 1].isPOV = false;
@@ -338,7 +330,8 @@ static BOOL CALLBACK enumButtonsCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPV
 	struct Gamepad_device * deviceRecord = context;
 	struct Gamepad_devicePrivate * deviceRecordPrivate = deviceRecord->privateData;
 	
-	deviceRecordPrivate->buttonOffsets[deviceRecord->numButtons++] = instance->dwOfs;
+	deviceRecordPrivate->buttonOffsets[deviceRecord->numButtons] = DIJOFS_BUTTON(deviceRecord->numButtons);
+	deviceRecord->numButtons++;
 	return DIENUM_CONTINUE;
 }
 
@@ -570,25 +563,26 @@ void Gamepad_processEvents() {
 				}
 				deviceIndex--;
 				continue;
-	    }
-	    
-	    for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
-	    	for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
-	    		if (events[eventIndex].dwOfs == devicePrivate->buttonOffsets[buttonIndex]) {
-	    			updateButtonValue(device, buttonIndex, !!events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
-	    		}
-	    	}
-	    	for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
-	    		if (events[eventIndex].dwOfs == devicePrivate->axisInfo[axisIndex].offset) {
-	    			if (devicePrivate->axisInfo[axisIndex].isPOV) {
-		    			updatePOVAxisValues(device, axisIndex, events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
-	    				axisIndex++;
-	    			} else {
-		    			updateAxisValue(device, axisIndex, events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
-		    		}
-	    		}
-	    	}
-	    }
+			}
+			
+			for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
+				//printf("Got event: offset = %u, data = %u\n", (unsigned int) events[eventIndex].dwOfs, (unsigned int) events[eventIndex].dwData);
+				for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
+					if (events[eventIndex].dwOfs == devicePrivate->buttonOffsets[buttonIndex]) {
+						updateButtonValue(device, buttonIndex, !!events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
+					}
+				}
+				for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
+					if (events[eventIndex].dwOfs == devicePrivate->axisInfo[axisIndex].offset) {
+						if (devicePrivate->axisInfo[axisIndex].isPOV) {
+							updatePOVAxisValues(device, axisIndex, events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
+							axisIndex++;
+						} else {
+							updateAxisValue(device, axisIndex, events[eventIndex].dwData, events[eventIndex].dwTimeStamp / 1000.0);
+						}
+					}
+				}
+			}
 			
 		} else {
 			DIJOYSTATE2 state;
@@ -611,10 +605,10 @@ void Gamepad_processEvents() {
 				}
 				deviceIndex--;
 				continue;
-	    }
-	    
-	    for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
-	    	updateButtonValue(device, buttonIndex, !!state.rgbButtons[buttonIndex], currentTime());
+			}
+			
+			for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
+				updateButtonValue(device, buttonIndex, !!state.rgbButtons[buttonIndex], currentTime());
 			}
 			
 			for (axisIndex = 0; axisIndex < device->numAxes; axisIndex++) {
