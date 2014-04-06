@@ -1,3 +1,7 @@
+1.4.0 (2014-04-06)
+ * Windows implementation completely redone to use DirectInput and XInput instead of joyGetPosEx
+ * Added MSVC support
+
 1.3.1 (2014-02-01)
  * Gamepad_init() on Mac OS X now detects devices immediately rather than waiting until the next run loop cycle
  * Gamepad_detectDevices() and Gamepad_processEvents() now work on Mac OS X in applicactions that call them outside the main CF/NSRunLoop
