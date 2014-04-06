@@ -86,8 +86,8 @@ RANLIB_linux32 = /usr/bin/ranlib
 SPLINT_linux32 = /usr/local/bin/splint
 CLANG_linux32 = /usr/local/bin/clang
 ARCHS_linux32 = i386
-CCFLAGS_linux32 = -m32 -fPIC
-LINKFLAGS_linux32 = -m32 -fPIC -ldl -lglut -lGLU -lGL -lm -Wl,-E
+CCFLAGS_linux32 = -m32
+LINKFLAGS_linux32 = -m32 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
 CC_linux64_x86_64 = /usr/bin/gcc
 AR_linux64 = /usr/bin/ar
@@ -95,33 +95,39 @@ RANLIB_linux64 = /usr/bin/ranlib
 SPLINT_linux64 = /usr/local/bin/splint
 CLANG_linux64 = /usr/local/bin/clang
 ARCHS_linux64 = x86_64
-CCFLAGS_linux64 = -m64 -fPIC
-LINKFLAGS_linux64 = -m64 -fPIC -ldl -lglut -lGLU -lGL -lm -Wl,-E
+CCFLAGS_linux64 = -m64
+LINKFLAGS_linux64 = -m64 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
 MINGW_W32_PATH ?= C:/MinGW
 MINGW_W32_VERSION ?= 4.6.2
 SPLINT_WIN_PATH ?= C:/splint-3.1.1/bin/splint.exe
 CLANG_WIN_PATH ?= C:/llvm/bin/clang.exe
+DX9_INCLUDE_PATH ?= C:/MinGW/dx9/include
+DX9_LIB_PATH ?= C:/MinGW/dx9/lib
+DX9_LIB_PATH_i386 ?= ${DX9_LIB_PATH}/x86
+WMI_LIB_PATH_i386 ?= C:/MinGW/WinSDK/Lib
 CC_win32_i386 = ${MINGW_W32_PATH}/bin/gcc.exe
 AR_win32 = ${MINGW_W32_PATH}/bin/ar.exe
 RANLIB_win32 = ${MINGW_W32_PATH}/bin/ranlib.exe
 SPLINT_win32 = ${SPLINT_WIN_PATH}
 CLANG_win32 = ${CLANG_WIN_PATH}
 ARCHS_win32 = i386
-CCFLAGS_win32 = -DFREEGLUT_STATIC
-LINKFLAGS_win32 = -lfreeglut32_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32
+CCFLAGS_win32 = -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
+LINKFLAGS_win32 = -lfreeglut32_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_i386}/Xinput.lib ${DX9_LIB_PATH_i386}/dinput8.lib ${DX9_LIB_PATH_i386}/dxguid.lib ${WMI_LIB_PATH_i386}/WbemUuid.Lib ${WMI_LIB_PATH_i386}/Ole32.Lib ${WMI_LIB_PATH_i386}/OleAut32.Lib
 EXECUTABLE_SUFFIX_win32 = .exe
 
 MINGW_W64_PATH ?= C:/MinGW-w64
 MINGW_W64_VERSION ?= 4.7.0
+DX9_LIB_PATH_x86_64 ?= ${DX9_LIB_PATH}/x64
+WMI_LIB_PATH_x86_64 ?= C:/MinGW/WinSDK/Lib/x64
 CC_win64_x86_64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-gcc.exe
 AR_win64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ar.exe
 RANLIB_win64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ranlib.exe
 SPLINT_win64 = ${SPLINT_WIN_PATH}
 CLANG_win64 = ${CLANG_WIN_PATH}
 ARCHS_win64 = x86_64
-CCFLAGS_win64 = -DFREEGLUT_STATIC
-LINKFLAGS_win64 = -lfreeglut64_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32
+CCFLAGS_win64 = -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
+LINKFLAGS_win64 = -lfreeglut64_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_x86_64}/Xinput.lib ${DX9_LIB_PATH_x86_64}/dinput8.lib ${DX9_LIB_PATH_x86_64}/dxguid.lib ${WMI_LIB_PATH_x86_64}/WbemUuid.Lib ${WMI_LIB_PATH_x86_64}/Ole32.Lib ${WMI_LIB_PATH_x86_64}/OleAut32.Lib
 EXECUTABLE_SUFFIX_win64 = .exe
 
 #General compile/link settings
@@ -156,10 +162,10 @@ SOURCES_library_macosx = \
 	source/${PROJECT_NAME}/Gamepad_macosx.c
 
 SOURCES_library_win32 = \
-	source/${PROJECT_NAME}/Gamepad_windows.c
+	source/${PROJECT_NAME}/Gamepad_windows_dinput.c
 
 SOURCES_library_win64 = \
-	source/${PROJECT_NAME}/Gamepad_windows.c
+	source/${PROJECT_NAME}/Gamepad_windows_dinput.c
 
 SOURCES_library_linux32 = \
 	source/${PROJECT_NAME}/Gamepad_linux.c
