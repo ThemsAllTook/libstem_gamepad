@@ -23,15 +23,11 @@ define newline_and_tab
 	
 endef
 
-iphone_sdk_version_integer = ${subst .,0,$1}${word ${words ${wordlist 2, ${words ${subst ., ,$1}}, ${subst ., ,$1}}}, 00}
-
 TARGET_PLATFORMS_macosx = macosx iphonesimulator iphoneos
 TARGET_PLATFORMS_linux = linux32 linux64
 TARGET_PLATFORMS_windows = win32 win64
 
 PROJECT_NAME = gamepad
-IPHONE_BUILD_SDK_VERSION ?= 4.2
-IPHONE_DEPLOYMENT_TARGET_VERSION ?= 3.1
 CODESIGN_IDENTITY ?= "iPhone Developer"
 
 LIBRARY_TARGETS = library
@@ -44,7 +40,7 @@ ANALYZERS = splint clang
 TARGET_NAME_library = libstem_${PROJECT_NAME}
 TARGET_NAME_unittest = ${PROJECT_NAME}_unittest
 TARGET_NAME_testharness = ${PROJECT_NAME}_testharness
-HUMAN_READABLE_TARGET_NAME_testharness = GamepadTestHarness
+HUMAN_READABLE_TARGET_NAME_testharness = Gamepad\ Test\ Harness
 
 #Per-target configurations
 CONFIGURATIONS_library = debug profile release
@@ -69,34 +65,35 @@ CCFLAGS_profile = -g -O3
 CCFLAGS_release = -O3
 
 #Per-platform compile/link settings
-CC_macosx_i386 = /usr/bin/clang -arch i386
-CC_macosx_x86_64 = /usr/bin/clang -arch x86_64
-AR_macosx = /usr/bin/ar
-RANLIB_macosx = /usr/bin/ranlib
-SPLINT_macosx = /usr/local/bin/splint
-CLANG_macosx = /usr/bin/clang
-SDKROOT_macosx = /Developer/SDKs/MacOSX10.6.sdk
-ARCHS_macosx = i386 x86_64
-CCFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.6
-LINKFLAGS_macosx = -isysroot ${SDKROOT_macosx} -mmacosx-version-min=10.6 -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT -framework ApplicationServices
+SDKROOT_macosx ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
+MACOSX_VERSION_MIN ?= 10.6
+CC_macosx_i386 ?= ${shell xcrun --sdk ${SDKROOT_macosx} --find cc} -arch i386
+CC_macosx_x86_64 ?= ${shell xcrun --sdk ${SDKROOT_macosx} --find cc} -arch x86_64
+AR_macosx ?= ${shell xcrun --sdk ${SDKROOT_macosx} --find ar}
+RANLIB_macosx ?= ${shell xcrun --sdk ${SDKROOT_macosx} --find ranlib}
+SPLINT_macosx ?= /usr/local/bin/splint
+CLANG_macosx ?= ${shell xcrun --sdk ${SDKROOT_macosx} --find clang}
+ARCHS_macosx ?= i386 x86_64
+CCFLAGS_macosx += -isysroot ${SDKROOT_macosx} -mmacosx-version-min=${MACOSX_VERSION_MIN}
+LINKFLAGS_macosx += -isysroot ${SDKROOT_macosx} -mmacosx-version-min=${MACOSX_VERSION_MIN} -framework IOKit -framework CoreFoundation -framework OpenGL -framework GLUT -framework ApplicationServices
 
-CC_linux32_i386 = /usr/bin/gcc
-AR_linux32 = /usr/bin/ar
-RANLIB_linux32 = /usr/bin/ranlib
-SPLINT_linux32 = /usr/local/bin/splint
-CLANG_linux32 = /usr/local/bin/clang
-ARCHS_linux32 = i386
-CCFLAGS_linux32 = -m32
-LINKFLAGS_linux32 = -m32 -ldl -lglut -lGLU -lGL -lm -Wl,-E
+CC_linux32_i386 ?= /usr/bin/gcc
+AR_linux32 ?= /usr/bin/ar
+RANLIB_linux32 ?= /usr/bin/ranlib
+SPLINT_linux32 ?= /usr/local/bin/splint
+CLANG_linux32 ?= /usr/local/bin/clang
+ARCHS_linux32 ?= i386
+CCFLAGS_linux32 += -m32
+LINKFLAGS_linux32 += -m32 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
-CC_linux64_x86_64 = /usr/bin/gcc
-AR_linux64 = /usr/bin/ar
-RANLIB_linux64 = /usr/bin/ranlib
-SPLINT_linux64 = /usr/local/bin/splint
-CLANG_linux64 = /usr/local/bin/clang
-ARCHS_linux64 = x86_64
-CCFLAGS_linux64 = -m64
-LINKFLAGS_linux64 = -m64 -ldl -lglut -lGLU -lGL -lm -Wl,-E
+CC_linux64_x86_64 ?= /usr/bin/gcc
+AR_linux64 ?= /usr/bin/ar
+RANLIB_linux64 ?= /usr/bin/ranlib
+SPLINT_linux64 ?= /usr/local/bin/splint
+CLANG_linux64 ?= /usr/local/bin/clang
+ARCHS_linux64 ?= x86_64
+CCFLAGS_linux64 += -m64
+LINKFLAGS_linux64 += -m64 -ldl -lglut -lGLU -lGL -lm -Wl,-E
 
 MINGW_W32_PATH ?= C:/MinGW
 MINGW_W32_VERSION ?= 4.6.2
@@ -106,28 +103,28 @@ DX9_INCLUDE_PATH ?= C:/MinGW/dx9/include
 DX9_LIB_PATH ?= C:/MinGW/dx9/lib
 DX9_LIB_PATH_i386 ?= ${DX9_LIB_PATH}/x86
 WMI_LIB_PATH_i386 ?= C:/MinGW/WinSDK/Lib
-CC_win32_i386 = ${MINGW_W32_PATH}/bin/gcc.exe
-AR_win32 = ${MINGW_W32_PATH}/bin/ar.exe
-RANLIB_win32 = ${MINGW_W32_PATH}/bin/ranlib.exe
-SPLINT_win32 = ${SPLINT_WIN_PATH}
-CLANG_win32 = ${CLANG_WIN_PATH}
-ARCHS_win32 = i386
-CCFLAGS_win32 = -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
-LINKFLAGS_win32 = -lfreeglut32_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_i386}/Xinput.lib ${DX9_LIB_PATH_i386}/dinput8.lib ${DX9_LIB_PATH_i386}/dxguid.lib ${WMI_LIB_PATH_i386}/WbemUuid.Lib ${WMI_LIB_PATH_i386}/Ole32.Lib ${WMI_LIB_PATH_i386}/OleAut32.Lib
+CC_win32_i386 ?= ${MINGW_W32_PATH}/bin/gcc.exe
+AR_win32 ?= ${MINGW_W32_PATH}/bin/ar.exe
+RANLIB_win32 ?= ${MINGW_W32_PATH}/bin/ranlib.exe
+SPLINT_win32 ?= ${SPLINT_WIN_PATH}
+CLANG_win32 ?= ${CLANG_WIN_PATH}
+ARCHS_win32 ?= i386
+CCFLAGS_win32 += -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
+LINKFLAGS_win32 += -lfreeglut32_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_i386}/Xinput.lib ${DX9_LIB_PATH_i386}/dinput8.lib ${DX9_LIB_PATH_i386}/dxguid.lib ${WMI_LIB_PATH_i386}/WbemUuid.Lib ${WMI_LIB_PATH_i386}/Ole32.Lib ${WMI_LIB_PATH_i386}/OleAut32.Lib
 EXECUTABLE_SUFFIX_win32 = .exe
 
 MINGW_W64_PATH ?= C:/MinGW-w64
 MINGW_W64_VERSION ?= 4.7.0
 DX9_LIB_PATH_x86_64 ?= ${DX9_LIB_PATH}/x64
 WMI_LIB_PATH_x86_64 ?= C:/MinGW/WinSDK/Lib/x64
-CC_win64_x86_64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-gcc.exe
-AR_win64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ar.exe
-RANLIB_win64 = ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ranlib.exe
-SPLINT_win64 = ${SPLINT_WIN_PATH}
-CLANG_win64 = ${CLANG_WIN_PATH}
-ARCHS_win64 = x86_64
-CCFLAGS_win64 = -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
-LINKFLAGS_win64 = -lfreeglut64_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_x86_64}/Xinput.lib ${DX9_LIB_PATH_x86_64}/dinput8.lib ${DX9_LIB_PATH_x86_64}/dxguid.lib ${WMI_LIB_PATH_x86_64}/WbemUuid.Lib ${WMI_LIB_PATH_x86_64}/Ole32.Lib ${WMI_LIB_PATH_x86_64}/OleAut32.Lib
+CC_win64_x86_64 ?= ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-gcc.exe
+AR_win64 ?= ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ar.exe
+RANLIB_win64 ?= ${MINGW_W64_PATH}/bin/x86_64-w64-mingw32-ranlib.exe
+SPLINT_win64 ?= ${SPLINT_WIN_PATH}
+CLANG_win64 ?= ${CLANG_WIN_PATH}
+ARCHS_win64 ?= x86_64
+CCFLAGS_win64 += -DFREEGLUT_STATIC -I ${DX9_INCLUDE_PATH}
+LINKFLAGS_win64 += -lfreeglut64_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32 ${DX9_LIB_PATH_x86_64}/Xinput.lib ${DX9_LIB_PATH_x86_64}/dinput8.lib ${DX9_LIB_PATH_x86_64}/dxguid.lib ${WMI_LIB_PATH_x86_64}/WbemUuid.Lib ${WMI_LIB_PATH_x86_64}/Ole32.Lib ${WMI_LIB_PATH_x86_64}/OleAut32.Lib
 EXECUTABLE_SUFFIX_win64 = .exe
 
 #General compile/link settings
@@ -149,8 +146,6 @@ LINK_ORDER = \
 PROJECT_LIBRARY_DEPENDENCIES_unittest = library
 PROJECT_LIBRARY_DEPENDENCIES_testharness = library
 STEM_LIBRARY_DEPENDENCIES = 
-STEM_LIBRARY_DEPENDENCIES_testharness = 
-STEM_SOURCE_DEPENDENCIES = 
 THIRDPARTY_LIBRARY_DEPENDENCIES = 
 
 #Per-target source file lists
@@ -271,8 +266,7 @@ ${eval ${call create_directory_target_template,build/intermediate}}
 define include_ccflags_template #(target, platform)
 -I source \
 ${foreach stem_dependency,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$2} ${STEM_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${stem_dependency}/include} \
-${foreach thirdparty_dependency,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$2} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${dir ${thirdparty_dependency}}include} \
-${foreach source_dependency,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$2} ${STEM_SOURCE_DEPENDENCIES_$1_$2},-I dep/${word 1,${subst /, ,${source_dependency}}}/source}
+${foreach thirdparty_dependency,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$2} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$2},-I ${STEM_SHARED_DIR}/${dir ${thirdparty_dependency}}include}
 endef
 
 define define_ccflags_template #(target, configuration, platform, arch)
@@ -356,9 +350,6 @@ define library_dependency_template #(target, configuration, platform)
 		${foreach library,${filter ${link_library}%,${STEM_LIBRARY_DEPENDENCIES} ${STEM_LIBRARY_DEPENDENCIES_$1} ${STEM_LIBRARY_DEPENDENCIES_$3} ${STEM_LIBRARY_DEPENDENCIES_$1_$3}}, \
 			${STEM_SHARED_DIR}/${library}/library/$2-$3/libstem_${word 1,${subst /, ,${library}}}.a \
 		} \
-		${foreach library,${filter ${link_library}%,${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$3} ${STEM_SOURCE_DEPENDENCIES_$1_$3}}, \
-			dep/${word 1,${subst /, ,${library}}}/build/${word 2,${subst /, ,${library}}}/$2-$3/${word 3,${subst /, ,${library}}} \
-		} \
 		${foreach library,${filter ${link_library}%,${THIRDPARTY_LIBRARY_DEPENDENCIES} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$3} ${THIRDPARTY_LIBRARY_DEPENDENCIES_$1_$3}}, \
 			${STEM_SHARED_DIR}/${dir ${library}}library/$3/${notdir ${library}} \
 		} \
@@ -374,19 +365,6 @@ ${foreach target,${EXECUTABLE_TARGETS} ${APPLICATION_TARGETS}, \
 			} \
 		} \
 	} \
-}
-
-
-
-define dependency_submake_template #(dependency)
-.PHONY: $1
-$1:
-	${MAKE} -C dep/${word 1,${subst /, ,$1}}
-endef
-
-#Invokes make for each source dependency
-${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${platform}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
-	${eval ${call dependency_submake_template,${dependency}}} \
 }
 
 
@@ -490,12 +468,12 @@ PLIST_FILE_testharness_macosx = resources/Info_testharness_macosx.plist
 PLIST_FILE_testharness_iphonesimulator = resources/Info_testharness_iphone.plist
 PLIST_PLATFORM_CASED_iphonesimulator = iPhoneSimulator
 PLIST_PLATFORM_LOWER_iphonesimulator = iphonesimulator
-PLIST_SDK_NAME_iphonesimulator = iphonesimulator${IPHONE_BUILD_SDK_VERSION}
+PLIST_SDK_NAME_iphonesimulator = iphonesimulator${IPHONESIMULATOR_VERSION_MIN}
 
 PLIST_FILE_testharness_iphoneos = resources/Info_testharness_iphone.plist
 PLIST_PLATFORM_CASED_iphoneos = iPhoneOS
 PLIST_PLATFORM_LOWER_iphoneos = iphoneos
-PLIST_SDK_NAME_iphoneos = iphoneos${IPHONE_BUILD_SDK_VERSION}
+PLIST_SDK_NAME_iphoneos = iphoneos${IPHONEOS_VERSION_MIN}
 
 define create_app_bundle #(target, platform, executable_dir, plist_dir, resources_dir)
 	mkdir -p $3 $4 $5
@@ -564,15 +542,15 @@ ${foreach target,${APPLICATION_TARGETS}, \
 }
 
 define library_dependency_template #(target, configuration, platform)
-${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$1_$3} build/$1/$2-$3/${TARGET_NAME_$1}.a
+build/$1/$2-$3/${TARGET_NAME_$1}.a
 endef
 
 define executable_dependency_template #(target, configuration, platform)
-${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$1_$3} build/$1/$2-$3/${TARGET_NAME_$1}${EXECUTABLE_SUFFIX_$3}
+build/$1/$2-$3/${TARGET_NAME_$1}${EXECUTABLE_SUFFIX_$3}
 endef
 
 define application_dependency_template #(target, configuration, platform)
-${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_$1} ${STEM_SOURCE_DEPENDENCIES_$1_$3} build/$1/$2-$3/${call application_file_template_$3,$1}
+build/$1/$2-$3/${call application_file_template_$3,$1}
 endef
 
 define application_file_template_macosx #(target)
@@ -716,25 +694,14 @@ include: ${INCLUDES} | ${foreach include_file,${INCLUDES},build/include/${notdir
 .PHONY: clean
 clean:
 	rm -rf build
-	${foreach dependency,${sort ${foreach target,${TARGETS},${foreach platform,${PLATFORMS_${target}},${STEM_SOURCE_DEPENDENCIES} ${STEM_SOURCE_DEPENDENCIES_${target}} ${STEM_SOURCE_DEPENDENCIES_${platform}} ${STEM_SOURCE_DEPENDENCIES_${target}_${platform}}}}}, \
-		${MAKE} -C dep/${word 1,${subst /, ,${dependency}}} clean${newline_and_tab} \
-	}
 
 TARGET_SUFFIX_ipad = _ipad
-TARGET_SUFFIX_iphone4 = _iphone4
-IPHONE_SDK_VERSION_iphone ?= 4.2
-IPHONE_SDK_VERSION_ipad ?= 3.2
-IPHONE_SDK_VERSION_iphone4 ?= 4.2
-IPHONESIMULATOR_APPLICATIONS_DIR_iphone ?= ${HOME}/Library/Application Support/iPhone Simulator/${IPHONE_SDK_VERSION_iphone}/Applications
-IPHONESIMULATOR_APPLICATIONS_DIR_ipad ?= ${HOME}/Library/Application Support/iPhone Simulator/${IPHONE_SDK_VERSION_ipad}/Applications
-IPHONESIMULATOR_APPLICATIONS_DIR_iphone4 ?= ${HOME}/Library/Application Support/iPhone Simulator/${IPHONE_SDK_VERSION_iphone4}/Applications
+IPHONESIMULATOR_SDK_VERSION ?= 7.1
+IPHONESIMULATOR_APPLICATIONS_DIR_iphone ?= ${HOME}/Library/Application Support/iPhone Simulator/${IPHONESIMULATOR_SDK_VERSION}/Applications
+IPHONESIMULATOR_APPLICATIONS_DIR_ipad ?= ${HOME}/Library/Application Support/iPhone Simulator/${IPHONESIMULATOR_SDK_VERSION}/Applications
 SIMULATE_DEVICE_iphone = iPhone
 SIMULATE_DEVICE_ipad = iPad
-SIMULATE_DEVICE_iphone4 = iPhone 4
-SIMULATE_SDKROOT_iphone = /Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDK_VERSION_iphone}.sdk
-SIMULATE_SDKROOT_ipad = /Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDK_VERSION_ipad}.sdk
-SIMULATE_SDKROOT_iphone4 = /Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDK_VERSION_iphone4}.sdk
-IPHONE_SIMULATOR_PATH ?= /Developer/Platforms/iPhoneSimulator.platform/Developer/Applications/iPhone Simulator.app
+IPHONE_SIMULATOR_PATH ?= /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Applications/iPhone\ Simulator.app
 
 define install_target_iphonesimulator_template #(target, simulate_device)
 .PHONY: install_$1_iphonesimulator${TARGET_SUFFIX_$2}
@@ -746,8 +713,8 @@ install_$1_iphonesimulator${TARGET_SUFFIX_$2}: $1
 	mkdir -p "${IPHONESIMULATOR_APPLICATIONS_DIR_$2}/${TARGET_NAME_$1}/tmp"
 	cp -r "build/$1/debug-iphonesimulator/${TARGET_NAME_$1}.app" "${IPHONESIMULATOR_APPLICATIONS_DIR_$2}/${TARGET_NAME_$1}"
 	defaults write com.apple.iphonesimulator SimulateDevice -string "${SIMULATE_DEVICE_$2}"
-	defaults write com.apple.iphonesimulator SimulateSDKRoot -string "${SIMULATE_SDKROOT_$2}"
-	defaults write com.apple.iphonesimulator currentSDKRoot -string "${SIMULATE_SDKROOT_$2}"
+	defaults write com.apple.iphonesimulator SimulateSDKRoot -string "${SDKROOT_iphonesimulator}"
+	defaults write com.apple.iphonesimulator currentSDKRoot -string "${SDKROOT_iphonesimulator}"
 	open "${IPHONE_SIMULATOR_PATH}"
 endef
 
@@ -772,7 +739,6 @@ endef
 ${foreach target,${APPLICATION_TARGETS}, \
 	${eval ${call install_target_iphonesimulator_template,${target},iphone}} \
 	${eval ${call install_target_iphonesimulator_template,${target},ipad}} \
-	${eval ${call install_target_iphonesimulator_template,${target},iphone4}} \
 	${eval ${call codesign_target_iphoneos_template,${target}}} \
 }
 
