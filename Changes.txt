@@ -1,3 +1,7 @@
+1.4.1 (2014-07-16)
+ * Fixed a memory leak from queuing button and axis events on Linux
+ * Added support for modern Xcode versions
+
 1.4.0 (2014-04-06)
  * Windows implementation completely redone to use DirectInput and XInput instead of joyGetPosEx
  * Added MSVC support
