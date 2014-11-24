@@ -84,7 +84,7 @@ SPLINT_linux32 ?= /usr/local/bin/splint
 CLANG_linux32 ?= /usr/local/bin/clang
 ARCHS_linux32 ?= i386
 CCFLAGS_linux32 += -m32
-LINKFLAGS_linux32 += -m32 -ldl -lglut -lGLU -lGL -lm -Wl,-E
+LINKFLAGS_linux32 += -m32 -ldl -lglut -lGLU -lGL -lm -lpthread -Wl,-E
 
 CC_linux64_x86_64 ?= /usr/bin/gcc
 AR_linux64 ?= /usr/bin/ar
