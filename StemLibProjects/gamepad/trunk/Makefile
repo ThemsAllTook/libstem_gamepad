@@ -37,8 +37,8 @@ LINKFLAGS_library_linux64 = -lpthread
 LINKFLAGS_library_win32 = ${DX9_LIB_PATH_i386}/Xinput.lib ${DX9_LIB_PATH_i386}/dinput8.lib ${DX9_LIB_PATH_i386}/dxguid.lib ${WMI_LIB_PATH_i386}/WbemUuid.Lib ${WMI_LIB_PATH_i386}/Ole32.Lib ${WMI_LIB_PATH_i386}/OleAut32.Lib
 LINKFLAGS_library_win64 = ${DX9_LIB_PATH_x86_64}/Xinput.lib ${DX9_LIB_PATH_x86_64}/dinput8.lib ${DX9_LIB_PATH_x86_64}/dxguid.lib ${WMI_LIB_PATH_x86_64}/WbemUuid.Lib ${WMI_LIB_PATH_x86_64}/Ole32.Lib ${WMI_LIB_PATH_x86_64}/OleAut32.Lib
 LINKFLAGS_testharness_macosx = -framework CoreFoundation -framework OpenGL -framework GLUT -framework ApplicationServices
-LINKFLAGS_testharness_linux32 = -lglut -lGLU -lGL #-ldl -lm
-LINKFLAGS_testharness_linux364 = -lglut -lGLU -lGL #-ldl -lm
+LINKFLAGS_testharness_linux32 = -lglut -lGLU -lGL
+LINKFLAGS_testharness_linux64 = -lglut -lGLU -lGL
 LINKFLAGS_testharness_win32 = -lfreeglut32_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32
 LINKFLAGS_testharness_win64 = -lfreeglut64_static -lopengl32 -lglu32 -lpthread -lwinmm -lgdi32
 
