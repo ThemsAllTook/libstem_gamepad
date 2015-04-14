@@ -1,3 +1,6 @@
+1.4.2 (2015-04-14)
+ * Fixed a bug introduced in 1.4.0 that caused the Gamepad_deviceAttachFunc callback not to be called on Windows
+
 1.4.1 (2014-07-16)
  * Fixed a memory leak from queuing button and axis events on Linux
  * Added support for modern Xcode versions

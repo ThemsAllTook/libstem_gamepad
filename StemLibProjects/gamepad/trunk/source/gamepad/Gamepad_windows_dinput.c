@@ -742,6 +742,10 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
 	devices[numDevices++] = deviceRecord;
 	
+	if (Gamepad_deviceAttachCallback != NULL) {
+		Gamepad_deviceAttachCallback(deviceRecord, Gamepad_deviceAttachContext);
+	}
+	
 	return DIENUM_CONTINUE;
 }
 
@@ -797,6 +801,9 @@ void Gamepad_detectDevices() {
 				devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
 				devices[numDevices++] = deviceRecord;
 				registeredXInputDevices[playerIndex] = deviceRecord;
+				if (Gamepad_deviceAttachCallback != NULL) {
+					Gamepad_deviceAttachCallback(deviceRecord, Gamepad_deviceAttachContext);
+				}
 				
 			} else if (xResult != ERROR_SUCCESS && registeredXInputDevices[playerIndex] != NULL) {
 				for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
