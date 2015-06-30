@@ -95,13 +95,4 @@ PLIST_FILE_testharness_macosx = resources/Info_testharness_macosx.plist
 
 INSTALLED_TARGETS = library testharness
 
-# Postamble to invoke stemconfig makefile. Do not modify.
-UNAME = ${shell uname}
-ifeq (${UNAME},Linux)
-STEM_SHARED_DIR ?= /usr/local/stem
-else ifeq (${UNAME},Darwin)
-STEM_SHARED_DIR ?= /usr/local/stem
-else
-STEM_SHARED_DIR ?= C:/stem
-endif
-include ${STEM_SHARED_DIR}/Makefile.global
+include Makefile.global
