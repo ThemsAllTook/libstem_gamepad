@@ -125,6 +125,10 @@ void Gamepad_shutdown() {
 		for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
 			if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_DEVICE_REMOVED) {
 				disposeDevice(eventQueue[eventIndex].eventData);
+			} else if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_BUTTON_DOWN ||
+				   eventQueue[eventIndex].eventType == GAMEPAD_EVENT_BUTTON_UP ||
+				   eventQueue[eventIndex].eventType == GAMEPAD_EVENT_AXIS_MOVED) {
+				free(eventQueue[eventIndex].eventData);
 			}
 		}
 		
