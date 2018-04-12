@@ -25,7 +25,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
+#include <linux/limits.h>
 #include <linux/input.h>
 #define __USE_UNIX98
 #include <pthread.h>
