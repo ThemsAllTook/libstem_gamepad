@@ -25,7 +25,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
+#include <linux/limits.h>
 #include <linux/input.h>
 #define __USE_UNIX98
 #include <pthread.h>
@@ -54,6 +54,7 @@ struct Gamepad_queuedEvent {
 static struct Gamepad_device ** devices = NULL;
 static unsigned int numDevices = 0;
 static unsigned int nextDeviceID = 0;
+static time_t lastInputStatTime = 0;
 static pthread_mutex_t devicesMutex;
 
 static struct Gamepad_queuedEvent * eventQueue = NULL;
@@ -105,6 +106,7 @@ void Gamepad_shutdown() {
 				thread = ((struct Gamepad_devicePrivate *) devices[0]->privateData)->thread;
 				pthread_cancel(thread);
 				pthread_join(thread, NULL);
+				disposeDevice(devices[0]);
 				
 				numDevices--;
 				for (gamepadIndex = 0; gamepadIndex < numDevices; gamepadIndex++) {
@@ -118,10 +120,15 @@ void Gamepad_shutdown() {
 		pthread_mutex_destroy(&eventQueueMutex);
 		free(devices);
 		devices = NULL;
+		lastInputStatTime = 0;
 		
 		for (eventIndex = 0; eventIndex < eventCount; eventIndex++) {
 			if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_DEVICE_REMOVED) {
 				disposeDevice(eventQueue[eventIndex].eventData);
+			} else if (eventQueue[eventIndex].eventType == GAMEPAD_EVENT_BUTTON_DOWN ||
+				   eventQueue[eventIndex].eventType == GAMEPAD_EVENT_BUTTON_UP ||
+				   eventQueue[eventIndex].eventType == GAMEPAD_EVENT_AXIS_MOVED) {
+				free(eventQueue[eventIndex].eventData);
 			}
 		}
 		
@@ -277,7 +284,6 @@ void Gamepad_detectDevices() {
 	char * description;
 	int bit;
 	time_t currentTime;
-	static time_t lastInputStatTime;
 	
 	if (!inited) {
 		return;
