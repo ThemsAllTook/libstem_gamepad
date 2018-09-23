@@ -285,7 +285,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	
 	cfProductName = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
 	if (cfProductName == NULL || CFGetTypeID(cfProductName) != CFStringGetTypeID()) {
-		description = malloc(strlen("[Unknown]" + 1));
+		description = malloc(strlen("[Unknown]") + 1);
 		strcpy(description, "[Unknown]");
 		
 	} else {
@@ -316,11 +316,11 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 			hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitchSecondAxis = false;
 			deviceRecord->numAxes++;
 			
-			if (hidDeviceRecord->axisElements[deviceRecord->numAxes - 1].isHatSwitch) {
-				hidDeviceRecord->axisElements = realloc(hidDeviceRecord->axisElements, sizeof(struct HIDGamepadAxis) * (deviceRecord->numAxes + 1));
-				hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitchSecondAxis = true;
-				deviceRecord->numAxes++;
-			}
+			// if (hidDeviceRecord->axisElements[deviceRecord->numAxes - 1].isHatSwitch) {
+			// 	hidDeviceRecord->axisElements = realloc(hidDeviceRecord->axisElements, sizeof(struct HIDGamepadAxis) * (deviceRecord->numAxes + 1));
+			// 	hidDeviceRecord->axisElements[deviceRecord->numAxes].isHatSwitchSecondAxis = true;
+			// 	deviceRecord->numAxes++;
+			// }
 			
 		} else if (type == kIOHIDElementTypeInput_Button) {
 			hidDeviceRecord->buttonElements = realloc(hidDeviceRecord->buttonElements, sizeof(struct HIDGamepadButton) * (deviceRecord->numButtons + 1));
@@ -332,6 +332,12 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	
 	deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
 	deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
+	for (unsigned int i = 0; i < deviceRecord->numAxes; ++i) {
+		deviceRecord->axisStates[i] = 0.0f;
+	}
+	for (unsigned int i = 0; i < deviceRecord->numButtons; ++i) {
+		deviceRecord->buttonStates[i] = 0;
+	}
 	
 	IOHIDDeviceRegisterInputValueCallback(device, onDeviceValueChanged, deviceRecord);
 	
