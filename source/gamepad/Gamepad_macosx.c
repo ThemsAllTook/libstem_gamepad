@@ -285,7 +285,7 @@ static void onDeviceMatched(void * context, IOReturn result, void * sender, IOHI
 	
 	cfProductName = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
 	if (cfProductName == NULL || CFGetTypeID(cfProductName) != CFStringGetTypeID()) {
-		description = malloc(strlen("[Unknown]" + 1));
+		description = malloc(strlen("[Unknown]") + 1);
 		strcpy(description, "[Unknown]");
 		
 	} else {
