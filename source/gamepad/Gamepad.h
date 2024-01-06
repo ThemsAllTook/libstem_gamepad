@@ -34,6 +34,19 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
+#include <stdarg.h>
+
+enum Gamepad_logLevel {
+   Gamepad_Trace,
+   Gamepad_Debug,
+   Gamepad_Info,
+   Gamepad_Warn,
+   Gamepad_Error,
+   Gamepad_Fatal
+};
+
+typedef void (* Gamepad_logger)(enum Gamepad_logLevel level, const char* format, va_list ap, void * context);
+
 struct Gamepad_device {
 	// Unique device identifier for application session, starting at 0 for the first device attached and
 	// incrementing by 1 for each additional device. If a device is removed and subsequently reattached
@@ -127,6 +140,9 @@ void Gamepad_buttonUpFunc(void (* callback)(struct Gamepad_device * device, unsi
    thread from which Gamepad_processEvents() was called. Calling this function with a NULL
    argument will stop any previously registered callback from being called subsequently.  */
 void Gamepad_axisMoveFunc(void (* callback)(struct Gamepad_device * device, unsigned int axisID, float value, float lastValue, double timestamp, void * context), void * context);
+
+/* Registers a logger function. */
+void Gamepad_loggerFunc(Gamepad_logger callback, void * context);
 
 #ifdef __cplusplus
 }

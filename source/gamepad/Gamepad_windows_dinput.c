@@ -112,14 +112,14 @@ static int CreateDeviceNotification(DeviceNotificationData *data)
 	data->wincl.cbSize = sizeof (WNDCLASSEX);
 
 	if (!RegisterClassEx(&data->wincl)) {
-		fprintf(stderr, "Failed to create register class for joystick autodetect");
+		Gamepad_log(Gamepad_Fatal, "Failed to create register class for joystick autodetect");
 		CleanupDeviceNotification(data);
 		return -1;
 	}
 
 	data->messageWindow = (HWND)CreateWindowEx(0, "Message", NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);
 	if (!data->messageWindow) {
-		fprintf(stderr, "Failed to create message window for joystick autodetect");
+		Gamepad_log(Gamepad_Fatal, "Failed to create message window for joystick autodetect");
 		CleanupDeviceNotification(data);
 		return -1;
 	}
@@ -131,7 +131,7 @@ static int CreateDeviceNotification(DeviceNotificationData *data)
 
 	data->hNotify = RegisterDeviceNotification(data->messageWindow, &dbh, DEVICE_NOTIFY_WINDOW_HANDLE);
 	if (!data->hNotify) {
-		fprintf(stderr, "Failed to create notify device for joystick autodetect");
+		Gamepad_log(Gamepad_Fatal, "Failed to create notify device for joystick autodetect");
 		CleanupDeviceNotification(data);
 		return -1;
 	}
@@ -239,7 +239,7 @@ void Gamepad_init() {
 			module = LoadLibrary("bin\\XInput1_3.dll");
 		}
 		if (module == NULL) {
-			fprintf(stderr, "Gamepad_init couldn't load XInput1_4.dll or XInput1_3.dll; proceeding with DInput only\n");
+			Gamepad_log(Gamepad_Error, "Gamepad_init couldn't load XInput1_4.dll or XInput1_3.dll; proceeding with DInput only\n");
 			xInputAvailable = false;
 		} else {
 			xInputAvailable = true;
@@ -253,20 +253,25 @@ void Gamepad_init() {
 		
 		module = LoadLibrary("DINPUT8.dll");
 		if (module == NULL) {
-			fprintf(stderr, "Gamepad_init fatal error: Couldn't load DINPUT8.dll\n");
+			Gamepad_log(Gamepad_Fatal, "Gamepad_init couldn't load DINPUT8.dll\n");
 			abort();
 		}
 		DirectInput8Create_proc = (HRESULT (WINAPI *)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN)) GetProcAddress(module, "DirectInput8Create");
 		result = DirectInput8Create_proc(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &IID_IDirectInput8, (void **) &directInputInterface, NULL);
 		
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: DirectInput8Create returned 0x%X\n", (unsigned int) result);
+			Gamepad_log(Gamepad_Warn, "DirectInput8Create returned 0x%X\n", (unsigned int) result);
 		}
 		
 		inited = true;
 		s_bWindowsDeviceChanged = true;
 		Gamepad_detectDevices();
 		CreateDeviceNotification(&notificationData);
+
+		Gamepad_log(Gamepad_Info, "Gamepad_init completed");
+	}
+	else {
+		Gamepad_log(Gamepad_Warn, "Gamepad_init already called");
 	}
 }
 
@@ -570,7 +575,7 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 		
 		result = IDirectInputDevice8_SetProperty(deviceRecordPrivate->deviceInterface, DIPROP_RANGE, &range.diph);
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+			Gamepad_log(Gamepad_Warn, "IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 		}
 		
 		deadZone.diph.dwSize = sizeof(deadZone);
@@ -580,7 +585,7 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 		deadZone.dwData = 0;
 		result = IDirectInputDevice8_SetProperty(deviceRecordPrivate->deviceInterface, DIPROP_DEADZONE, &deadZone.diph);
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+			Gamepad_log(Gamepad_Warn, "IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 		}
 	}
 	return DIENUM_CONTINUE;
@@ -800,22 +805,22 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	
 	result = IDirectInput8_CreateDevice(directInputInterface, &instance->guidInstance, &diDevice, NULL);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInput8_CreateDevice returned 0x%X\n", (unsigned int) result);
+		Gamepad_log(Gamepad_Warn, "IDirectInput8_CreateDevice returned 0x%X\n", (unsigned int) result);
 	}
 	result = IDirectInputDevice8_QueryInterface(diDevice, &IID_IDirectInputDevice8, (LPVOID *) &di8Device);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_QueryInterface returned 0x%X\n", (unsigned int) result);
+		Gamepad_log(Gamepad_Warn, "IDirectInputDevice8_QueryInterface returned 0x%X\n", (unsigned int) result);
 	}
 	IDirectInputDevice8_Release(diDevice);
 	
 	result = IDirectInputDevice8_SetCooperativeLevel(di8Device, GetActiveWindow(), DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetCooperativeLevel returned 0x%X\n", (unsigned int) result);
+		Gamepad_log(Gamepad_Warn, "IDirectInputDevice8_SetCooperativeLevel returned 0x%X\n", (unsigned int) result);
 	}
 	
 	result = IDirectInputDevice8_SetDataFormat(di8Device, &c_dfDIJoystick2);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetDataFormat returned 0x%X\n", (unsigned int) result);
+		Gamepad_log(Gamepad_Warn, "IDirectInputDevice8_SetDataFormat returned 0x%X\n", (unsigned int) result);
 	}
 	
 	bufferSizeProp.diph.dwSize = sizeof(DIPROPDWORD);
@@ -827,7 +832,7 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	if (result == DI_POLLEDDEVICE) {
 		buffered = false;
 	} else if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+		Gamepad_log(Gamepad_Warn, "IDirectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 	}
 	
 	deviceRecord = malloc(sizeof(struct Gamepad_device));
@@ -891,7 +896,7 @@ void Gamepad_detectDevices() {
 	if (s_bWindowsDeviceChanged) {
 		result = IDirectInput_EnumDevices(directInputInterface, DI8DEVCLASS_GAMECTRL, enumDevicesCallback, NULL, DIEDFL_ALLDEVICES);
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: IDirectInput_EnumDevices returned 0x%X\n", (unsigned int) result);
+			Gamepad_log(Gamepad_Warn, "IDirectInput_EnumDevices returned 0x%X\n", (unsigned int) result);
 		}
 		s_bWindowsDeviceChanged = false;
 	}
